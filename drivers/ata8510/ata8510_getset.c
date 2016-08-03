@@ -28,7 +28,7 @@
 
 uint16_t ata8510_get_addr_short(ata8510_t *dev)
 {
-    return (dev->netdev.short_addr[0] << 8) | dev->netdev.short_addr[1];
+    return 0;
 }
 
 void ata8510_set_addr_short(ata8510_t *dev, uint16_t addr)
