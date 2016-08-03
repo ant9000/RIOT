@@ -53,8 +53,45 @@ const netdev2_driver_t ata8510_driver = {
     .set = _set,
 };
 
+static void _irq_handler(void *arg)
+{
+    netdev2_t *dev = (netdev2_t *) arg;
+
+    if (dev->event_callback) {
+        dev->event_callback(dev, NETDEV2_EVENT_ISR);
+    }
+}
+
 static int _init(netdev2_t *netdev)
 {
+    ata8510_t *dev = (ata8510_t *)netdev;
+
+    /* initialise GPIOs */
+    gpio_init(dev->params.cs_pin, GPIO_OUT);
+    gpio_set(dev->params.cs_pin);
+    gpio_init(dev->params.sleep_pin, GPIO_OUT);
+    gpio_clear(dev->params.sleep_pin);
+    gpio_init(dev->params.reset_pin, GPIO_OUT);
+    gpio_set(dev->params.reset_pin);
+    gpio_init_int(dev->params.int_pin, GPIO_IN, GPIO_RISING, _irq_handler, dev);
+
+    /* make sure device is not sleeping, so we can query part number */
+    ata8510_assert_awake(dev);
+
+//  /* test if the SPI is set up correctly and the device is responding */
+//  if (ata8510_reg_read(dev, ATA8510_REG__PART_NUM) !=
+//      ATA8510_PARTNUM) {
+//      DEBUG("[ata8510] error: unable to read correct part number\n");
+//      return -1;
+//  }
+    DEBUG("[ata8510] init done\n");
+
+#ifdef MODULE_NETSTATS_L2
+    memset(&netdev->stats, 0, sizeof(netstats_t));
+#endif
+    /* reset device to default values and put it into RX state */
+    ata8510_reset(dev);
+
     return 0;
 }
 
