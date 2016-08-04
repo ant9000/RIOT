@@ -37,6 +37,14 @@ extern "C" {
 #endif
 
 /**
+ * @brief   Default addresses used if the CPUID module is not present
+ * @{
+ */
+#define ATA8510_DEFAULT_ADDR_SHORT    (0x0230)
+#define ATA8510_DEFAULT_ADDR_LONG     (0x1222334455667788)
+/** @} */
+
+/**
  * @brief   Flags for device internal states (see datasheet)
  * @{
  */

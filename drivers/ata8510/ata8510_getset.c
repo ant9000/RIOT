@@ -28,20 +28,41 @@
 
 uint16_t ata8510_get_addr_short(ata8510_t *dev)
 {
-    return 0;
+    return (dev->netdev.short_addr[0] << 8) | dev->netdev.short_addr[1];
 }
 
 void ata8510_set_addr_short(ata8510_t *dev, uint16_t addr)
 {
+    dev->netdev.short_addr[0] = (uint8_t)(addr);
+    dev->netdev.short_addr[1] = (uint8_t)(addr >> 8);
+#ifdef MODULE_SIXLOWPAN
+    /* https://tools.ietf.org/html/rfc4944#section-12 requires the first bit to
+     * 0 for unicast addresses */
+    dev->netdev.short_addr[0] &= 0x7F;
+#endif
+//    ata8510_reg_write(dev, ATA8510_REG__SHORT_ADDR_0,
+//                        dev->netdev.short_addr[1]);
+//    ata8510_reg_write(dev, ATA8510_REG__SHORT_ADDR_1,
+//                        dev->netdev.short_addr[0]);
 }
 
 uint64_t ata8510_get_addr_long(ata8510_t *dev)
 {
-    return 0;
+    uint64_t addr;
+    uint8_t *ap = (uint8_t *)(&addr);
+    for (int i = 0; i < 8; i++) {
+        ap[i] = dev->netdev.long_addr[i];
+    }
+    return addr;
 }
 
 void ata8510_set_addr_long(ata8510_t *dev, uint64_t addr)
 {
+    for (int i = 0; i < 8; i++) {
+        dev->netdev.long_addr[i] = (uint8_t)(addr >> (i * 8));
+//        ata8510_reg_write(dev, (ATA8510_REG__IEEE_ADDR_0 + i),
+//                            (addr >> ((7 - i) * 8)));
+    }
 }
 
 uint8_t ata8510_get_chan(ata8510_t *dev)

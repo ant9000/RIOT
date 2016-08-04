@@ -108,6 +108,12 @@ static int _recv(netdev2_t *netdev, char *buf, int len, void *info)
 static int _get(netdev2_t *netdev, netopt_t opt, void *val, size_t max_len)
 {
     int res = -ENOTSUP;
+
+    if (((res = netdev2_ieee802154_get((netdev2_ieee802154_t *)netdev, opt, val,
+                                       max_len)) >= 0) || (res != -ENOTSUP)) {
+        return res;
+    }
+
     return res;
 }
 
