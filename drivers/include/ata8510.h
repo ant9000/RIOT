@@ -37,6 +37,13 @@ extern "C" {
 #endif
 
 /**
+ * @brief   Flags for device internal states (see datasheet)
+ * @{
+ */
+#define ATA8510_STATE_IDLE         (0x20)     /**< idle */
+/** @} */
+
+/**
  * @brief struct holding all params needed for device initialization
  */
 typedef struct ata8510_params {
