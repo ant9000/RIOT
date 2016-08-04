@@ -30,9 +30,8 @@
 #include "ata8510.h"
 #include "ata8510_netdev.h"
 #include "ata8510_internal.h"
-#include "ata8510_registers.h"
 
-#define ENABLE_DEBUG (0)
+#define ENABLE_DEBUG (1)
 #include "debug.h"
 
 #define _MAX_MHR_OVERHEAD   (25)
@@ -65,6 +64,9 @@ static void _irq_handler(void *arg)
 static int _init(netdev2_t *netdev)
 {
     ata8510_t *dev = (ata8510_t *)netdev;
+    int32_t ret;
+    uint8_t command[6]={0x13,0x00,0x00,0x00,0x00,0x00}; // GetVersionFlash
+    uint8_t output[6];
 
     /* initialise GPIOs */
     gpio_init(dev->params.cs_pin, GPIO_OUT);
@@ -75,15 +77,22 @@ static int _init(netdev2_t *netdev)
     gpio_set(dev->params.reset_pin);
     gpio_init_int(dev->params.int_pin, GPIO_IN, GPIO_RISING, _irq_handler, dev);
 
-    /* make sure device is not sleeping, so we can query part number */
-    ata8510_assert_awake(dev);
+    ata8510_power_on(dev);
+    spi_poweron(dev->params.spi);
 
-//  /* test if the SPI is set up correctly and the device is responding */
+    /* test if the SPI is set up correctly and the device is responding */
+    ret = ata8510_send_cmd(dev, command, output, sizeof(command));
+    DEBUG(
+        "[ata8510] GetVersionFlash: ret=%ld [0x%02x 0x%02x 0x%02x 0x%02x 0x%02x 0x%02x]\n",
+        ret, output[0], output[1], output[2], output[3], output[4], output[5]
+    );
+
 //  if (ata8510_reg_read(dev, ATA8510_REG__PART_NUM) !=
 //      ATA8510_PARTNUM) {
 //      DEBUG("[ata8510] error: unable to read correct part number\n");
 //      return -1;
 //  }
+
     DEBUG("[ata8510] init done\n");
 
 #ifdef MODULE_NETSTATS_L2

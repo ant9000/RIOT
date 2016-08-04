@@ -20,7 +20,6 @@
 
 #include "ata8510.h"
 #include "ata8510_internal.h"
-#include "ata8510_registers.h"
 #include "periph/spi.h"
 
 #define ENABLE_DEBUG (0)

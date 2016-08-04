@@ -22,7 +22,6 @@
 #include "byteorder.h"
 #include "net/ieee802154.h"
 #include "net/gnrc.h"
-#include "ata8510_registers.h"
 #include "ata8510_internal.h"
 #include "ata8510_netdev.h"
 
@@ -103,12 +102,12 @@ void ata8510_reset(ata8510_t *dev)
 //#ifdef MODULE_NETSTATS_L2
 //    ata8510_set_option(dev, ATA8510_OPT_TELL_TX_END, true);
 //#endif
-//    /* set default protocol */
-//#ifdef MODULE_GNRC_SIXLOWPAN
-//    dev->netdev.proto = GNRC_NETTYPE_SIXLOWPAN;
-//#elif MODULE_GNRC
-//    dev->netdev.proto = GNRC_NETTYPE_UNDEF;
-//#endif
+    /* set default protocol */
+#ifdef MODULE_GNRC_SIXLOWPAN
+    dev->netdev.proto = GNRC_NETTYPE_SIXLOWPAN;
+#elif MODULE_GNRC
+    dev->netdev.proto = GNRC_NETTYPE_UNDEF;
+#endif
 //    /* enable safe mode (protect RX FIFO until reading data starts) */
 //    ata8510_reg_write(dev, ATA8510_REG__TRX_CTRL_2,
 //                        ATA8510_TRX_CTRL_2_MASK__RX_SAFE_MODE);

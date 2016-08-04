@@ -22,45 +22,34 @@
 #include "periph/gpio.h"
 #include "xtimer.h"
 #include "ata8510_internal.h"
-#include "ata8510_registers.h"
 
-void ata8510_reg_write(const ata8510_t *dev,
-                         const uint8_t addr,
-                         const uint8_t value)
-{
-}
-
-uint8_t ata8510_reg_read(const ata8510_t *dev, const uint8_t addr)
-{
-    return 0;
-}
-
-void ata8510_sram_read(const ata8510_t *dev,
-                         const uint8_t offset,
-                         uint8_t *data,
-                         const size_t len)
-{
-}
-
-void ata8510_sram_write(const ata8510_t *dev,
-                          const uint8_t offset,
-                          const uint8_t *data,
+int ata8510_send_cmd(const ata8510_t *dev,
+                          const uint8_t *tx_buffer,
+                          const uint8_t *rx_buffer,
                           const size_t len)
 {
+    int count;
+    spi_acquire(dev->params.spi);
+    gpio_clear(dev->params.cs_pin);
+    count = spi_transfer_bytes(
+        dev->params.spi, (char *)tx_buffer, (char *)rx_buffer, len
+    );
+    gpio_set(dev->params.cs_pin);
+    spi_release(dev->params.spi);
+    return count;
 }
 
-void ata8510_fb_start(const ata8510_t *dev)
-{
-}
-
-void ata8510_fb_read(const ata8510_t *dev,
-                       uint8_t *data,
-                       const size_t len)
-{
-}
-
-void ata8510_fb_stop(const ata8510_t *dev)
-{
+void ata8510_power_on(const ata8510_t *dev){
+    gpio_clear(dev->params.reset_pin);
+    gpio_clear(dev->params.reset_pin);
+    gpio_clear(dev->params.reset_pin);
+    gpio_clear(dev->params.reset_pin);
+    gpio_set(dev->params.reset_pin);
+    gpio_set(dev->params.reset_pin);
+    gpio_set(dev->params.reset_pin);
+    gpio_set(dev->params.reset_pin);
+    gpio_clear(dev->params.sleep_pin);
+    // delay_ms(2);
 }
 
 uint8_t ata8510_get_status(const ata8510_t *dev)

@@ -28,81 +28,24 @@ extern "C" {
 #endif
 
 /**
- * @brief   Read from a register at address `addr` from device `dev`.
+ * @brief   Send a command to the given device
  *
- * @param[in] dev       device to read from
- * @param[in] addr      address of the register to read
- *
- * @return              the value of the specified register
+ * @param[in]  dev        device to read from
+ * @param[in]  tx_buffer  data to transmit
+ * @param[out] rx_buffer  buffer to read data into
+ * @param[in]  len        number of bytes to transmit
  */
-uint8_t ata8510_reg_read(const ata8510_t *dev, const uint8_t addr);
-
-/**
- * @brief   Write to a register at address `addr` from device `dev`.
- *
- * @param[in] dev       device to write to
- * @param[in] addr      address of the register to write
- * @param[in] value     value to write to the given register
- */
-void ata8510_reg_write(const ata8510_t *dev, const uint8_t addr,
-                         const uint8_t value);
-
-/**
- * @brief   Read a chunk of data from the SRAM of the given device
- *
- * @param[in]  dev      device to read from
- * @param[in]  offset   starting address to read from [valid 0x00-0x7f]
- * @param[out] data     buffer to read data into
- * @param[in]  len      number of bytes to read from SRAM
- */
-void ata8510_sram_read(const ata8510_t *dev,
-                         const uint8_t offset,
-                         uint8_t *data,
-                         const size_t len);
-
-/**
- * @brief   Write a chunk of data into the SRAM of the given device
- *
- * @param[in] dev       device to write to
- * @param[in] offset    address in the SRAM to write to [valid 0x00-0x7f]
- * @param[in] data      data to copy into SRAM
- * @param[in] len       number of bytes to write to SRAM
- */
-void ata8510_sram_write(const ata8510_t *dev,
-                          const uint8_t offset,
-                          const uint8_t *data,
+int ata8510_send_cmd(const ata8510_t *dev,
+                          const uint8_t *tx_buffer,
+                          const uint8_t *rx_buffer,
                           const size_t len);
 
 /**
- * @brief   Start a read transcation internal frame buffer of the given device
+ * @brief   Power on sequence 
  *
- * Reading the frame buffer returns some extra bytes that are not accessible
- * through reading the RAM directly. This locks the used SPI.
- *
- * @param[in]  dev      device to start read
+ * @param[in] dev       device to manipulate
  */
-void ata8510_fb_start(const ata8510_t *dev);
-
-/**
- * @brief   Read the internal frame buffer of the given device
- *
- * Each read advances the position in the buffer by @p len.
- *
- * @param[in]  dev      device to read from
- * @param[out] data     buffer to copy the data to
- * @param[in]  len      number of bytes to read from the frame buffer
- */
-void ata8510_fb_read(const ata8510_t *dev,
-                       uint8_t *data, const size_t len);
-
-/**
- * @brief   Stop a read transcation internal frame buffer of the given device
- *
- * Release the SPI device and unlock frame buffer protection.
- *
- * @param[in]  dev      device to stop read
- */
-void ata8510_fb_stop(const ata8510_t *dev);
+void ata8510_power_on(const ata8510_t *dev);
 
 /**
  * @brief   Cancel ongoing transactions and switch to TRX_OFF state

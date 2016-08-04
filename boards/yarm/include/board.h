@@ -33,7 +33,7 @@ extern "C" {
  * {spi bus, spi speed, cs pin, int pin, reset pin, sleep pin}
  */
 #define ATA8510_PARAMS_BOARD        {.spi = SPI_0, \
-                                     .spi_speed = SPI_SPEED_5MHZ, \
+                                     .spi_speed = SPI_SPEED_100KHZ, \
                                      .cs_pin = GPIO_PIN(PA, 5), \
                                      .int_pin = GPIO_PIN(PA, 14), \
                                      .sleep_pin = GPIO_PIN(PA, 27), \
