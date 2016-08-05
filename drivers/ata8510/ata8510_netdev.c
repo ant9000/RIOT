@@ -83,12 +83,6 @@ static int _init(netdev2_t *netdev)
         return -1;
     }
 
-//  if (ata8510_reg_read(dev, ATA8510_REG__PART_NUM) !=
-//      ATA8510_PARTNUM) {
-//      DEBUG("[ata8510] error: unable to read correct part number\n");
-//      return -1;
-//  }
-
     DEBUG("[ata8510] init done\n");
 
 #ifdef MODULE_NETSTATS_L2
