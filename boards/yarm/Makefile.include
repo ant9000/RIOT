@@ -12,3 +12,6 @@ include $(RIOTBOARD)/Makefile.include.serial
 
 # this board uses openocd
 include $(RIOTBOARD)/Makefile.include.openocd
+
+# openocd flashing is slow, let's boost it
+export FLASHER=$(RIOTBOARD)/$(BOARD)/dist/flasher.sh
