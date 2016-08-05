@@ -144,6 +144,23 @@ uint64_t ata8510_get_addr_long(ata8510_t *dev);
 void ata8510_set_addr_long(ata8510_t *dev, uint64_t addr);
 
 /**
+ * @brief   Read device ROM parameters
+ *
+ * @param[in] dev           device to read from
+ * @param[out] data         (6-byte) output data
+ */
+void ata8510_get_version_flash(ata8510_t *dev, uint8_t *data);
+
+/**
+ * @brief   Read device ROM signature
+ *
+ * @param[in] dev           device to read from
+ *
+ * @return                  the device ROM signature
+ */
+uint8_t ata8510_get_device_signature(ata8510_t *dev);
+
+/**
  * @brief   Get the configured channel number of the given device
  *
  * @param[in] dev           device to read from

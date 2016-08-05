@@ -28,6 +28,12 @@ extern "C" {
 #endif
 
 /**
+ * @brief   Constant part number of the ATA8510
+ * @{
+ */
+#define ATA8510_PARTNUM       (0x21)
+
+/**
  * @brief   Send a command to the given device
  *
  * @param[in]  dev        device to read from

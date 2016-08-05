@@ -49,7 +49,7 @@ void ata8510_power_on(const ata8510_t *dev){
     gpio_set(dev->params.reset_pin);
     gpio_set(dev->params.reset_pin);
     gpio_clear(dev->params.sleep_pin);
-    xtimer_usleep(2000);
+    xtimer_usleep(100);
 }
 
 uint8_t ata8510_get_status(const ata8510_t *dev)

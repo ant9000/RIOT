@@ -39,10 +39,6 @@ void ata8510_set_addr_short(ata8510_t *dev, uint16_t addr)
      * 0 for unicast addresses */
     dev->netdev.short_addr[0] &= 0x7F;
 #endif
-//    ata8510_reg_write(dev, ATA8510_REG__SHORT_ADDR_0,
-//                        dev->netdev.short_addr[1]);
-//    ata8510_reg_write(dev, ATA8510_REG__SHORT_ADDR_1,
-//                        dev->netdev.short_addr[0]);
 }
 
 uint64_t ata8510_get_addr_long(ata8510_t *dev)
@@ -59,9 +55,22 @@ void ata8510_set_addr_long(ata8510_t *dev, uint64_t addr)
 {
     for (int i = 0; i < 8; i++) {
         dev->netdev.long_addr[i] = (uint8_t)(addr >> (i * 8));
-//        ata8510_reg_write(dev, (ATA8510_REG__IEEE_ADDR_0 + i),
-//                            (addr >> ((7 - i) * 8)));
     }
+}
+
+void ata8510_get_version_flash(ata8510_t *dev, uint8_t *data){
+    uint8_t command[6]={0x13,0x00,0x00,0x00,0x00,0x00};
+    ata8510_send_cmd(dev, command, data, sizeof(command));
+    DEBUG(
+        "[ata8510] GetVersionFlash: [0x%02x 0x%02x 0x%02x 0x%02x 0x%02x 0x%02x]\n",
+        data[0], data[1], data[2], data[3], data[4], data[5]
+    );
+}
+
+uint8_t ata8510_get_device_signature(ata8510_t *dev){
+    uint8_t data[6]={0,0,0,0,0,0};
+    ata8510_get_version_flash(dev,data);
+    return data[2];
 }
 
 uint8_t ata8510_get_chan(ata8510_t *dev)
