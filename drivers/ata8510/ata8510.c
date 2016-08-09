@@ -24,8 +24,9 @@
 #include "net/gnrc.h"
 #include "ata8510_internal.h"
 #include "ata8510_netdev.h"
+#include "ata8510_params.h"
 
-#define ENABLE_DEBUG (0)
+#define ENABLE_DEBUG (1)
 #include "debug.h"
 
 
@@ -161,4 +162,42 @@ size_t ata8510_tx_load(ata8510_t *dev, uint8_t *data,
 
 void ata8510_tx_exec(ata8510_t *dev)
 {
+}
+
+
+void ata8510_tx32bytes_send(ata8510_t *dev, uint8_t *data)
+{
+
+	uint8_t TxPreambleBuffer[]={0x04, 0x70, 0x8E, 0x0A, 0x55, 0x55, 0x10, 0x55, 0x56};
+	uint8_t TxSequence[]={
+		0x40,		// 0, Chn 1, Serv 0
+		0x50,		// 1, Chn 2, Serv 0
+		0x60,		// 2, Chn 3, Serv 0
+		0x41,		// 3, Chn 1, Serv 1
+		0x51,		// 4, Chn 2, Serv 1
+		0x61,		// 5, Chn 3, Serv 1
+		0x42,		// 6, Chn 1, Serv 2
+		0x52,		// 7, Chn 2, Serv 2
+		0x62,		// 8, Chn 3, Serv 2
+	};
+	uint8_t seq_idx;
+
+
+	ata8510_SetIdleMode(dev);
+	DEBUG("ata8510_SetIdleMode\n\r");
+//	delay_ms(1);
+	DEBUG("-------- Transmission request\r\n");
+
+	ata8510_WriteTxPreamble(dev, ATA8510_WriteTxPreambleBuffer_LEN, &TxPreambleBuffer[0]);
+	DEBUG("ata8510_WriteTxPreamble");
+//	delay_us( 100);
+
+	ata8510_WriteTxFifo(dev, strlen((char *)data), data);
+	DEBUG("ata8510_WriteTxFifo\n\r");
+//	delay_us(100);
+
+	seq_idx = 0;
+	ata8510_SetSystemMode(dev, ATA8510_RF_TXMODE, TxSequence[seq_idx]);
+	DEBUG("ata8510_SetSystemMode TXMode\n\r");
+//	delay_ms(250);
 }

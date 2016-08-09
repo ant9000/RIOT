@@ -68,6 +68,72 @@ static const ata8510_params_t ata8510_params[] =
 #endif
 };
 
+#define ATA8510_CMD_SETPOLLINGMODE		(0x23)
+#define ATA8510_CMD_SETIDLEMODE			(0x00)
+#define ATA8510_CMD_READRXFILLLEVEL		(0x01)
+#define ATA8510_CMD_READTXFILLLEVEL		(0x02)
+#define ATA8510_CMD_READRSSIFILLLEVEL	(0x03)
+#define ATA8510_CMD_GETCONFIGEVENTBYTE  (0x04)
+#define ATA8510_CMD_GETEVENTBYTE		(0x04)
+#define ATA8510_CMD_READRSSIFIFO		(0x05)
+#define ATA8510_CMD_READRXFIFO			(0x06)
+#define ATA8510_CMD_WRITESRAM			(0x07)
+#define ATA8510_CMD_READSRAM			(0x08)
+#define ATA8510_CMD_WRITEEEPROM			(0x09)
+#define ATA8510_CMD_READEEPROM			(0x0A)
+#define ATA8510_CMD_WRITETXFIFO			(0x0B)
+#define ATA8510_CMD_WRITETXPREAMBLE		(0x0C)
+#define ATA8510_CMD_SETSYSTEMMODE		(0x0D)
+#define ATA8510_CMD_GETVERSIONFLASH		(0x13)
+#define ATA8510_CMD_RESET               (0x15)
+#define ATA8510_CMD_STARTRSSIMSRMNT		(0x1B)
+#define ATA8510_CMD_GETRSSIMSRMNT		(0x1C)
+
+#define ATA8510_CMD_SETPOLLINGMODE_LEN		(3)
+#define ATA8510_CMD_SETIDLEMODE_LEN	        (3)
+#define ATA8510_CMD_READRXFILLLEVEL_LEN		(3)
+#define ATA8510_CMD_READTXFILLLEVEL_LEN		(3)
+#define ATA8510_CMD_READRSSIFILLLEVEL_LEN	(3)
+#define ATA8510_CMD_GETCONFIGEVENTBYTE_LEN	(4)
+#define ATA8510_CMD_GETEVENTBYTE_LEN		(4)
+#define ATA8510_CMD_WRITEEEPROM_LEN         (4)
+#define ATA8510_CMD_READEEPROM_LEN          (5)
+#define ATA8510_CMD_SETSYSTEMMODE_LEN		(3)
+#define ATA8510_CMD_GETVERSIONFLASH_LEN		(6)
+#define ATA8510_CMD_RESET_LEN               (2)
+#define ATA8510_CMD_STARTRSSIMSRMNT_LEN		(2)
+#define ATA8510_CMD_GETRSSIMSRMNT_LEN       (4)
+#define ATA8510_CMD_WRITESRAM_LEN           (4)
+#define ATA8510_CMD_READSRAM_LEN            (5)
+#define ATA8510_DATA_HEADER		('D')
+#define ATA8510_DATA_HEADER_LEN			(1)
+#define ATA8510_CHECKSUM_LEN			(1)
+#define ATA8510_WriteTxPreambleBuffer_LEN	(9)
+
+						// systemModeConfig:
+#define ATA8510_RF_RXPOLLINGMODE	(0x23)	// bit5 VCO tuning before changing OPM enabled,
+						// OPM[3] RXPollingMode
+
+						// systemModeConfig:
+#define ATA8510_RF_IDLEMODE		(0x20)	// bit5 VCO tuning before changing OPM enabled,
+						// OPM[0] IDLEMode
+
+						// systemModeConfig:
+#define ATA8510_RF_TXMODE			(0x21)	// bit5 VCO tuning before changing OPM enabled,
+						// OPM[1] TXMode
+
+						// systemModeConfig:
+#define ATA8510_RF_RXMODE			(0x22)  // bit5 VCO tuning before changing OPM enabled,
+						// OPM[2] RXMode
+
+						// serviceChannelConfig:
+#define ATA8510_RF_TXSERVICE		(0x40)	// bit6 Enable PathA
+						// ch[0] Channel 0
+#define ATA8510_RF_RXSERVICE		(0x40)	// bit6 Enable PathA
+						// ch[0] Channel 0
+
+
+
 #ifdef __cplusplus
 }
 #endif

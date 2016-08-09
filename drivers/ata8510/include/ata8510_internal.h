@@ -92,6 +92,49 @@ void ata8510_hardware_reset(ata8510_t *dev);
 void ata8510_configure_phy(ata8510_t *dev);
 
 
+
+/**
+ * @brief Switch to polling mode of the RF transceiver
+ *
+ * @param[in] dev       device to configure
+ */
+int ata8510_SetPollingMode(ata8510_t *dev);
+
+/**
+ * @brief Switch to idle mode of the RF transceiver
+ *
+ * @param[in] dev       device to configure
+ */
+int ata8510_SetIdleMode(ata8510_t *dev);
+
+/**
+ * @brief Write TX preamble buffer to RF transceiver
+ *
+ * @param[in] dev       device to configure
+ * @param[in] data_size number of bytes of the preamble
+ * @param[in] data      preamble to trasmit
+ */
+int ata8510_WriteTxPreamble(ata8510_t *dev, uint8_t data_size, uint8_t *data);
+
+/**
+ * @brief Write TX buffer of the RF transceiver
+ *
+ * @param[in] dev       device to configure
+ * @param[in] data_size number of bytes of the payload
+ * @param[in] data	payload to trasmit
+ */
+int ata8510_WriteTxFifo(ata8510_t *dev,  uint8_t data_size, uint8_t *data);
+
+/**
+ * @brief Set system mode of the RF receiver
+ *
+ * @param[in] dev          device to configure
+ * @param[in] mode_config  number of bytes of the preamble
+ * @param[in] service_channel  service and channel to be used to transmit
+ */
+int ata8510_SetSystemMode(ata8510_t *dev, uint8_t mode_config, uint8_t service_channel);
+
+
 #ifdef __cplusplus
 }
 #endif

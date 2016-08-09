@@ -385,6 +385,9 @@ size_t ata8510_tx_load(ata8510_t *dev, uint8_t *data, size_t len,
  */
 void ata8510_tx_exec(ata8510_t *dev);
 
+void ata8510_tx32bytes_send(ata8510_t *dev, uint8_t *data);
+
+
 #ifdef __cplusplus
 }
 #endif
