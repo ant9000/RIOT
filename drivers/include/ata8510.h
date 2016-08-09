@@ -37,6 +37,11 @@ extern "C" {
 #endif
 
 /**
+ * @brief   Maximum possible packet size in byte
+ */
+#define ATA8510_MAX_PKT_LENGTH        (127)
+
+/**
  * @brief   Default addresses used if the CPUID module is not present
  * @{
  */
