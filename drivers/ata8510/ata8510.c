@@ -27,7 +27,7 @@
 #include "ata8510_netdev.h"
 #include "ata8510_params.h"
 
-#define ENABLE_DEBUG (0)
+#define ENABLE_DEBUG (1)
 #include "debug.h"
 
 
@@ -146,7 +146,7 @@ bool ata8510_cca(ata8510_t *dev)
     return false;
 }
 
-size_t ata8510_send(ata8510_t *dev, uint8_t *data, size_t len)
+size_t ata8510_send(ata8510_t *dev, uint8_t *data, size_t len, uint8_t service, uint8_t channel)
 {
 	ata8510_SetIdleMode(dev);
 	ata8510_set_state(dev, IDLE);
@@ -157,7 +157,7 @@ size_t ata8510_send(ata8510_t *dev, uint8_t *data, size_t len)
 
 	ata8510_tx_prepare(dev);
 	ata8510_tx_load(dev, data, len, 0);
-	ata8510_tx_exec(dev);
+	ata8510_tx_exec(dev, service, channel);
 	ata8510_set_state(dev, TX_ON);
 
     return 0;
@@ -179,22 +179,23 @@ size_t ata8510_tx_load(ata8510_t *dev, uint8_t *data,
 	return 0;
 }
 
-void ata8510_tx_exec(ata8510_t *dev)
+void ata8510_tx_exec(ata8510_t *dev, uint8_t service, uint8_t channel)
 {
-	uint8_t TxSequence[]={
-		0x40,		// 0, Chn 1, Serv 0
-		0x50,		// 1, Chn 2, Serv 0
-		0x60,		// 2, Chn 3, Serv 0
-		0x41,		// 3, Chn 1, Serv 1
-		0x51,		// 4, Chn 2, Serv 1
-		0x61,		// 5, Chn 3, Serv 1
-		0x42,		// 6, Chn 1, Serv 2
-		0x52,		// 7, Chn 2, Serv 2
-		0x62,		// 8, Chn 3, Serv 2
-	};
-	uint8_t seq_idx = 0;
-	ata8510_SetSystemMode(dev, ATA8510_RF_TXMODE, TxSequence[seq_idx]);
-	DEBUG("ata8510_SetSystemMode TXMode\n\r");
+	uint8_t modeTx;
+	if (service <= 2) {
+		modeTx = service;
+	} else {
+		DEBUG("tx_exec: Service not permitted %d\n",service);
+		return;
+	}
+	if (channel<=2) {
+		modeTx |= ( (channel<<4) + 0x40);
+	} else {
+		DEBUG("tx_exec: Channel not permitted %d\n",service);
+		return;
+	}
+	ata8510_SetSystemMode(dev, ATA8510_RF_TXMODE, modeTx);
+	DEBUG("ata8510_SetSystemMode TXMode. modeTx = %02x\n\r",modeTx);
 }
 
 

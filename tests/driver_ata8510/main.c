@@ -33,6 +33,7 @@
 /* set intervals */
 #define INTERVALTX (7U * SEC_IN_USEC)
 #define INTERVALRX 300000U
+#define INTERVALRSSI 10000U
 #include "msg.h"
 
 
@@ -62,12 +63,15 @@ int event8510;  // total number of 8510 events occurred
 uint8_t ata8510BufferRx[260];
 uint8_t ata8510BufferTx[260];
 uint8_t receivedMsg = 0;
+uint8_t RSSI=0;
+uint8_t dBm=0;
 uint8_t data[37];
+uint8_t dataRSSI[19];
 
 static void _event_cb(netdev2_t *dev, netdev2_event_t event)
 {
     uint8_t mystate8510;
-	uint8_t rxlen;
+	uint8_t rxlen, rssilen;
 	uint8_t i;
     ata8510_t *mydev = (ata8510_t *)dev;
     if (event == NETDEV2_EVENT_ISR) {
@@ -83,7 +87,8 @@ static void _event_cb(netdev2_t *dev, netdev2_event_t event)
 		event8510++;
 		ata8510_GetEventBytes(mydev, data);
 		mystate8510 = ata8510_get_state(mydev);
-		printf("IRQ_CB 8510 Event Status %02x %02x %02x %02x event8510 %d state8510 %d\n", data[0], data[1], data[2], data[3], event8510, mystate8510);
+		if (mystate8510 == 0) mystate8510 = 0;
+//		printf("IRQ_CB 8510 Event Status %02x %02x %02x %02x event8510 %d state8510 %d\n", data[0], data[1], data[2], data[3], event8510, mystate8510);
 #if 1
 		switch (mystate8510) {
 			case IDLE:
@@ -117,6 +122,10 @@ static void _event_cb(netdev2_t *dev, netdev2_event_t event)
 							rxlen = ata8510_ReadFillLevelRxFIFO(mydev);
 							ata8510_ReadRxFIFO(mydev, rxlen, data);
 							data[rxlen+3]=0x00; // close the string received
+							rssilen=ata8510_ReadFillLevelRSSIFIFO(mydev);
+							if (rssilen>0)
+								ata8510_ReadRSSIFIFO(mydev, rssilen, dataRSSI);
+							dataRSSI[2]=rssilen; // uses the dummy location to save the length of the RSSI buffer.
 							ata8510_SetIdleMode(mydev);
 							xtimer_usleep(70);
 							ata8510_SetPollingMode(mydev);
@@ -124,7 +133,7 @@ static void _event_cb(netdev2_t *dev, netdev2_event_t event)
 							for (i=0; i<rxlen+1; i++) {
 								ata8510BufferRx[i] = data[i+3];  // raw copy of received bytes in ata8510BufferRx					
 							}
-							receivedMsg = 1;
+							receivedMsg = 1; 
 						}
 						break;			
 					default:
@@ -171,7 +180,8 @@ void *_recv_thread(void *arg)
 
 //#define ROBTHREADTX
 //#define ROBTHREADRX
-#define ROBTHREADTRX
+//#define ROBTHREADTRX
+#define ROBTHREADRSSIMEAS
 
 
 #ifdef ROBTHREADTX
@@ -185,14 +195,13 @@ void *rob_thread_tx(void *arg)
 
     uint32_t last_wakeup = xtimer_now();
     char msg[32];
-
+    
     sprintf(msg, "Yarm RIOT TX2OK!");
 		
 
     while (1) {
-//        printf("Rob %" PRIu32 "\n", xtimer_now());
         xtimer_periodic_wakeup(&last_wakeup, INTERVALTX);
-		ata8510_send(dev, (uint8_t *)msg, strlen(msg));
+		ata8510_send(dev, (uint8_t *)msg, strlen(msg), 0, 0);  // service 0 channel 0
    }
 
     return NULL;
@@ -207,6 +216,9 @@ void *rob_thread_rx(void *arg)
 	(void) arg;
 	ata8510_t *dev = &devs[0]; // acquires the 8510 device handle
 	uint8_t data[4]={0,0,0,0};
+	int valRSSI=0;
+	int valRSSIdBm=0;
+	int i;
 
 	printf("rob thread rx started, pid: %" PRIkernel_pid "\n", thread_getpid());
 	uint32_t last_wakeup = xtimer_now();
@@ -228,7 +240,19 @@ void *rob_thread_rx(void *arg)
 
 		// simple semaphore for testing
 		if (receivedMsg) {
-			printf("Rob_Thread_Rx Message Received: %s\n\n",ata8510BufferRx);
+			printf("Rob_Thread_Rx Message Received: %s\n",ata8510BufferRx);
+			// calculate RSSI and dBm values
+			valRSSI=0;
+			if (dataRSSI[2] > 0) {
+				for (i=0; i<dataRSSI[2]; i++) {
+					valRSSI+=dataRSSI[i+3];
+				}
+				valRSSI /= dataRSSI[2];
+				valRSSIdBm = (valRSSI>>1) - 135;
+				printf(" RSSI values = %d RSSI = %d   dBm = %d\n", dataRSSI[2], valRSSI, valRSSIdBm);
+			} else {
+				printf("no RSSI values read\n");
+			}
 			receivedMsg = 0;
 		}
 
@@ -269,8 +293,8 @@ void *rob_thread_trx(void *arg)
 		if (receivedMsg) {
 			printf("Rob_Thread_TRx Message Received: %s\n\n",ata8510BufferRx);
 			receivedMsg = 0;
-			sprintf(msg, "Yarm RIOT ACK!");
-			ata8510_send(dev, (uint8_t *)msg, strlen(msg));
+			sprintf(msg, "YARM RIOT ACK!");
+			ata8510_send(dev, (uint8_t *)msg, strlen(msg), 0, 1);
 			printf("Rob_Thread_TRx Message Sent: %s\n\n",msg);
 		}
 
@@ -281,6 +305,45 @@ void *rob_thread_trx(void *arg)
 char rob_thread_trx_stack[THREAD_STACKSIZE_MAIN];
 #endif
 
+#ifdef ROBTHREADRSSIMEAS
+void *rob_thread_RSSI_meas(void *arg)
+{
+    (void) arg;
+    ata8510_t *dev = &devs[0]; // acquires the 8510 device handle
+	uint8_t data[4]={0,0,0,0};
+	
+    printf("rob thread RSSI measurement, pid: %" PRIkernel_pid "\n", thread_getpid());
+
+    uint32_t last_wakeup = xtimer_now();
+
+// ROB this while should be put in init 8510 since you connaot start polling mode if 8510 is not telling it is ready (first byte = 0x20).
+	while(1) {
+		xtimer_periodic_wakeup(&last_wakeup, INTERVALRSSI);
+		ata8510_GetEventBytes(dev, data);
+		if (data[0] == 0x20) {  // wait for 8510 to be ready
+			xtimer_usleep(70);
+			ata8510_SetIdleMode(dev);  // stay in idle mode			
+			break;
+		}
+    }
+// ROB
+
+	xtimer_usleep(500000);
+		
+
+    while (1) {
+        xtimer_periodic_wakeup(&last_wakeup, INTERVALRSSI);
+		ata8510_StartRSSI_Measurement(dev, 0, 0);
+		xtimer_usleep(30000);
+		ata8510_GetRSSI_Value(dev, data);
+		if (data[2] > 50) printf("  RSSI Avg: %03d  Peak: %03d\n", data[2], data[3]);
+   }
+
+    return NULL;
+}
+
+char rob_thread_RSSI_meas_stack[THREAD_STACKSIZE_MAIN];
+#endif
 
 
 
@@ -309,14 +372,14 @@ int main(void)
     }
 
 #ifdef ROBTHREADTX
-    printf("[main] Starting rob tx thread...\n");
+    printf("[main] Starting tx thread...\n");
     thread_create(rob_thread_tx_stack, sizeof(rob_thread_tx_stack),
                             THREAD_PRIORITY_MAIN - 1, THREAD_CREATE_STACKTEST,
                             rob_thread_tx, NULL, "tx_daemon");
 #endif
 
 #ifdef ROBTHREADRX
-    printf("[main] Starting rob rx thread...\n");
+    printf("[main] Starting rx thread...\n");
     thread_create(rob_thread_rx_stack, sizeof(rob_thread_rx_stack),
                             THREAD_PRIORITY_MAIN - 1, THREAD_CREATE_STACKTEST,
                             rob_thread_rx, NULL, "rx_daemon");
@@ -324,11 +387,19 @@ int main(void)
 
 
 #ifdef ROBTHREADTRX
-    printf("[main] Starting rob trx thread...\n");
+    printf("[main] Starting trx thread...\n");
     thread_create(rob_thread_trx_stack, sizeof(rob_thread_trx_stack),
                             THREAD_PRIORITY_MAIN - 1, THREAD_CREATE_STACKTEST,
                             rob_thread_trx, NULL, "trx_daemon");
 #endif
+
+#ifdef ROBTHREADRSSIMEAS
+    printf("[main] Starting RSSI measurement thread...\n");
+    thread_create(rob_thread_RSSI_meas_stack, sizeof(rob_thread_RSSI_meas_stack),
+                            THREAD_PRIORITY_MAIN - 1, THREAD_CREATE_STACKTEST,
+                            rob_thread_RSSI_meas, NULL, "RSSI_daemon");
+#endif
+
 
 
 #ifdef FEATURE_PERIPH_RTC
@@ -338,10 +409,11 @@ int main(void)
 
     /* start the shell */
     puts("Initialization successful - starting the shell now");
-    puts("Welcome to RIOT Rob4!");
+    puts("\nWelcome to YARM for RIOT test5!");
 
     char line_buf[SHELL_DEFAULT_BUFSIZE];
     shell_run(shell_commands, line_buf, SHELL_DEFAULT_BUFSIZE);
 
     return 0;
 }
+

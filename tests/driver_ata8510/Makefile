@@ -12,6 +12,13 @@ USEMODULE += ps
 
 USEMODULE += ata8510
 
+# ROB use xtimer
+USEMODULE += xtimer
+
+# ROB use rtc
+FEATURES_OPTIONAL += periph_rtc
+
+
 CFLAGS += -DDEVELHELP
 
 include $(RIOTBASE)/Makefile.include

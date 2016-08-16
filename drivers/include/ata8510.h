@@ -40,7 +40,7 @@ extern "C" {
 /**
  * @brief   Maximum possible packet size in byte
  */
-#define ATA8510_MAX_PKT_LENGTH        (127)
+#define ATA8510_MAX_PKT_LENGTH        (32)
 
 /**
  * @brief   Default addresses used if the CPUID module is not present
@@ -247,7 +247,26 @@ void ata8510_ReadRSSIFIFO(ata8510_t *dev, uint8_t len, uint8_t *data);
  */
 void ata8510_ReadRxFIFO(ata8510_t *dev, uint8_t len, uint8_t *data);
 
+/**
+ * @brief   Start RSSI Measurement
+ *
+ * @param[in] dev           device to read from
+ * @param[in] service       service to check
+ * @param[in] channel       channel to check
+ *
+ * @return                  -
+ */
+void ata8510_StartRSSI_Measurement(ata8510_t *dev, uint8_t service, uint8_t channel);
 
+/**
+ * @brief   Get RSSI Value
+ *
+ * @param[in] dev           device to read from
+ * @param[out] data         (4 bytes) events.system byte + events.events byte + RSSI avg + RSSI peak
+ *
+ * @return                  the 4 data bytes
+ */
+void ata8510_GetRSSI_Value(ata8510_t *dev, uint8_t *data);
 
 
 
@@ -473,7 +492,7 @@ void ata8510_reset_state_machine(ata8510_t *dev);
  * @return                  number of bytes that were actually send
  * @return                  0 on error
  */
-size_t ata8510_send(ata8510_t *dev, uint8_t *data, size_t len);
+size_t ata8510_send(ata8510_t *dev, uint8_t *data, size_t len, uint8_t service, uint8_t channel);
 
 /**
  * @brief   Prepare for sending of data
@@ -503,7 +522,7 @@ size_t ata8510_tx_load(ata8510_t *dev, uint8_t *data, size_t len,
  *
  * @param[in] dev           device to trigger
  */
-void ata8510_tx_exec(ata8510_t *dev);
+void ata8510_tx_exec(ata8510_t *dev, uint8_t service, uint8_t channel);
 
 #ifdef __cplusplus
 }

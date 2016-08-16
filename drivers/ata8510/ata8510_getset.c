@@ -156,7 +156,38 @@ void ata8510_ReadRxFIFO(ata8510_t *dev, uint8_t len, uint8_t *data){
 	);
 }
 
+void ata8510_StartRSSI_Measurement(ata8510_t *dev, uint8_t service, uint8_t channel){
+	uint8_t command[2]={ATA8510_CMD_STARTRSSIMSRMNT,0x00};
+	uint8_t dummy[2];
+	uint8_t servchan;
+	if (service <= 2) {
+		servchan = service;
+	} else {
+		DEBUG("tx_exec: Service not permitted %d\n",service);
+		return;
+	}
+	if (channel<=2) {
+		servchan |= ( (channel<<4) + 0x40);
+	} else {
+		DEBUG("tx_exec: Channel not permitted %d\n",service);
+		return;
+	}
+	command[1] = servchan;
+	ata8510_send_cmd(dev, command, dummy, sizeof(command));
+	DEBUG(
+		"[ata8510] Start RSSI Measurement: [0x%02x 0x%02x]\n",
+		command[0], command[1]
+	);
+}
 
+void ata8510_GetRSSI_Value(ata8510_t *dev, uint8_t *data){
+	uint8_t command[4]={ATA8510_CMD_GETRSSIMSRMNT,0x00,0x00,0x00};
+	ata8510_send_cmd(dev, command, data, sizeof(command));
+	DEBUG(
+		"[ata8510] Get RSSI Value: [0x%02x 0x%02x 0x%02x 0x%02x]\n",
+		data[0], data[1], data[2], data[3]
+	);
+}
 
 uint8_t ata8510_get_device_signature(ata8510_t *dev){
     uint8_t data[6]={0,0,0,0,0,0};
