@@ -14,6 +14,7 @@
  * @brief       Implementation of driver internal functions
  *
  * @author      Antonio Galea <antonio.galea@gmail.com>
+ * @author      Roberto Asquini <bobasquins@gmail.com>
  *
  * @}
  */

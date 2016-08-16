@@ -14,6 +14,7 @@
  * @brief       Implementation of public functions for ATA8510 radio module
  *
  * @author      Antonio Galea <antonio.galea@gmail.com>
+ * @author      Roberto Asquini <bobasquins@gmail.com>
  *
  * @}
  */

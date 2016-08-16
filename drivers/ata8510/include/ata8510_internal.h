@@ -14,6 +14,7 @@
  * @brief       Internal interfaces for ATA8510 driver
  *
  * @author      Antonio Galea <antonio.galea@gmail.com>
+ * @author      Roberto Asquini <bobasquins@gmail.com>
  */
 
 #ifndef ATA8510_INTERNAL_H_

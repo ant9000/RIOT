@@ -14,6 +14,7 @@
  * @brief       Getter and setter functions for the ATA8510 driver
  *
  * @author      Antonio Galea <antonio.galea@gmail.com>
+ * @author      Roberto Asquini <bobasquins@gmail.com>
  *
  * @}
  */
