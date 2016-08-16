@@ -92,21 +92,6 @@ void ata8510_hardware_reset(ata8510_t *dev);
 void ata8510_configure_phy(ata8510_t *dev);
 
 
-
-/**
- * @brief Switch to polling mode of the RF transceiver
- *
- * @param[in] dev       device to configure
- */
-int ata8510_SetPollingMode(ata8510_t *dev);
-
-/**
- * @brief Switch to idle mode of the RF transceiver
- *
- * @param[in] dev       device to configure
- */
-int ata8510_SetIdleMode(ata8510_t *dev);
-
 /**
  * @brief Write TX preamble buffer to RF transceiver
  *

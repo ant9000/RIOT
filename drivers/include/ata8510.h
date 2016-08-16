@@ -165,6 +165,101 @@ void ata8510_get_version_flash(ata8510_t *dev, uint8_t *data);
  */
 uint8_t ata8510_get_device_signature(ata8510_t *dev);
 
+
+
+/**
+ * @brief Switch to polling mode with VCO tuning enabled and starting with polling configuration 0.
+ *
+ * @param[in] dev           device to read from
+ *
+ * @return                  event status byte
+ */
+uint8_t ata8510_SetPollingMode(ata8510_t *dev);
+
+
+
+/**
+ * @brief Switch to idle mode of the RF transceiver
+ *
+ * @param[in] dev           device to read from
+ *
+ * @return                  event status byte
+ */
+uint8_t ata8510_SetIdleMode(ata8510_t *dev);
+
+/**
+ * @brief   Read device event 4 bytes
+ *
+ * @param[in] dev           device to read from
+ * @param[out] data         (4-byte) output data
+ *
+ * @return                  the device 4 event bytes
+ */
+void ata8510_GetEventBytes(ata8510_t *dev, uint8_t *data);
+
+/**
+ * @brief   Read Fill Level of Rx FIFO
+ *
+ * @param[in] dev           device to read from
+ *
+ * @return                  Rx FIFO fill level
+ */
+uint8_t ata8510_ReadFillLevelRxFIFO(ata8510_t *dev);
+
+/**
+ * @brief   Read Fill Level of Tx FIFO
+ *
+ * @param[in] dev           device to read from
+ *
+ * @return               	Tx FIFO fill level
+ */
+uint8_t ata8510_ReadFillLevelTxFIFO(ata8510_t *dev);
+
+/**
+ * @brief   Read Fill Level of RSSI FIFO
+ *
+ * @param[in] dev           device to read from
+ *
+ * @return                  RSSI FIFO fill level
+ */
+uint8_t ata8510_ReadFillLevelRSSIFIFO(ata8510_t *dev);
+
+/**
+ * @brief   Read device RSSI FIFO
+ *
+ * @param[in] dev           device to read from
+ * @param[in] len           num of values bytes to be read
+ * @param[out] data         (len+3 bytes) events.system byte + events.events byte + data (len bytes)
+ *
+ * @return                  the device 4 event bytes
+ */
+void ata8510_ReadRSSIFIFO(ata8510_t *dev, uint8_t len, uint8_t *data);
+
+/**
+ * @brief   Read device event 4 bytes
+ *
+ * @param[in] dev           device to read from
+ * @param[in] len           num of values bytes to be read
+ * @param[out] data         (len+3 bytes) events.system byte + events.events byte + data (len bytes)
+ *
+ * @return                  the device 4 event bytes
+ */
+void ata8510_ReadRxFIFO(ata8510_t *dev, uint8_t len, uint8_t *data);
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 /**
  * @brief   Get the configured channel number of the given device
  *
@@ -327,6 +422,16 @@ void ata8510_set_cca_threshold(ata8510_t *dev, int8_t value);
  */
 void ata8510_set_option(ata8510_t *dev, uint16_t option, bool state);
 
+
+/* Possible ata8510 states */
+typedef enum {
+	IDLE = 0,		/* 0: IDLE state No TRX, waiting for commands */
+	TX_ON,			/* 1: Transmission is ongoing */
+	RX_ON,			/* 2: Reception in progress (for payloads more than 32 bytes) */
+	POLLING			/* 3: POLLING state */
+} ATA8510STATES;
+
+
 /**
  * @brief   Set the state of the given device (trigger a state change)
  *
@@ -334,6 +439,15 @@ void ata8510_set_option(ata8510_t *dev, uint16_t option, bool state);
  * @param[in] state         the targeted new state
  */
 void ata8510_set_state(ata8510_t *dev, uint8_t state);
+
+/**
+ * @brief   Get the state of the given device 
+ *
+ * @param[in] dev           device to change state of
+ *
+ * @return                  the current state
+ */
+uint8_t ata8510_get_state(ata8510_t *dev);
 
 /**
  * @brief   Reset the internal state machine to TRX_OFF mode.
@@ -389,9 +503,6 @@ size_t ata8510_tx_load(ata8510_t *dev, uint8_t *data, size_t len,
  * @param[in] dev           device to trigger
  */
 void ata8510_tx_exec(ata8510_t *dev);
-
-void ata8510_tx32bytes_send(ata8510_t *dev, uint8_t *data);
-
 
 #ifdef __cplusplus
 }

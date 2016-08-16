@@ -52,6 +52,7 @@ const netdev2_driver_t ata8510_driver = {
     .set = _set,
 };
 
+
 static void _irq_handler(void *arg)
 {
     netdev2_t *dev = (netdev2_t *) arg;
@@ -72,7 +73,7 @@ static int _init(netdev2_t *netdev)
     gpio_clear(dev->params.sleep_pin);
     gpio_init(dev->params.reset_pin, GPIO_OUT);
     gpio_set(dev->params.reset_pin);
-    gpio_init_int(dev->params.int_pin, GPIO_IN, GPIO_RISING, _irq_handler, dev);
+    gpio_init_int(dev->params.int_pin, GPIO_IN, GPIO_FALLING, _irq_handler, dev);
 
     ata8510_power_on(dev);
     spi_poweron(dev->params.spi);

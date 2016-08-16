@@ -75,40 +75,7 @@ void ata8510_force_trx_off(const ata8510_t *dev)
 {
 }
 
-/**
- * \brief Switch to polling mode of the RF transceiver
- *
- * Switch to polling mode with VCO tuning enabled and starting with polling configuration 0.
- */
-int ata8510_SetPollingMode(ata8510_t *dev)
-{
-	int ret;
-	// set polling mode
-	uint8_t command[3]={ ATA8510_CMD_SETSYSTEMMODE, ATA8510_CMD_SETPOLLINGMODE, 0x00};
-	uint8_t dummy[3];
 
-	ret=ata8510_send_cmd(dev, command, dummy, ATA8510_CMD_SETPOLLINGMODE_LEN);
-
-	return ret;
-}
-
-
-/**
- * @brief Switch to idle mode of the RF transceiver
- *
- */
-int ata8510_SetIdleMode(ata8510_t *dev)
-{
-	int ret;
-
-	// set idle mode
-	uint8_t command[3]={ ATA8510_CMD_SETSYSTEMMODE, ATA8510_RF_IDLEMODE, ATA8510_RF_RXSERVICE};
-	uint8_t dummy[3];
-
-	ret=ata8510_send_cmd(dev, command, dummy, ATA8510_CMD_SETIDLEMODE_LEN);
-
-	return ret;
-}
 
 /**
  * \brief Write TX preamble buffer of the RF transceiver
@@ -118,11 +85,11 @@ int ata8510_SetIdleMode(ata8510_t *dev)
 int ata8510_WriteTxPreamble(ata8510_t *dev, uint8_t data_size, uint8_t *data)
 {
 	int ret;
-	uint8_t command[35]={ATA8510_CMD_WRITETXPREAMBLE, data_size};
-	uint8_t dummy[35];
+	uint8_t command[19]={ATA8510_CMD_WRITETXPREAMBLE, data_size};
+	uint8_t dummy[19];
 	uint8_t index;
 
-	if (data_size<=32) {
+	if (data_size<=19) {
 		for (index=0; index <data_size; index++)
 		{
 			command[2 + index]= data[index];
@@ -132,7 +99,7 @@ int ata8510_WriteTxPreamble(ata8510_t *dev, uint8_t data_size, uint8_t *data)
 		return ret;
 
 	} else
-		return -100;  // ROB: PREAMBLE FIFO is 32 bytes!!
+		return -100;  // ROB: PREAMBLE FIFO is 16 bytes!!
 
 }
 

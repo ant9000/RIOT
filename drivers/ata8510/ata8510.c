@@ -26,7 +26,7 @@
 #include "ata8510_netdev.h"
 #include "ata8510_params.h"
 
-#define ENABLE_DEBUG (1)
+#define ENABLE_DEBUG (0)
 #include "debug.h"
 
 
@@ -147,28 +147,39 @@ bool ata8510_cca(ata8510_t *dev)
 
 size_t ata8510_send(ata8510_t *dev, uint8_t *data, size_t len)
 {
+	ata8510_SetIdleMode(dev);
+	ata8510_set_state(dev, IDLE);
+	DEBUG("ata8510_SetIdleMode\n\r");
+	DEBUG("-------- Transmission request\r\n");
+	// check for 32 bytes max transmission (for now)!
+	if (len>32) len = 32; // truncation in case
+
+	ata8510_tx_prepare(dev);
+	ata8510_tx_load(dev, data, len, 0);
+	ata8510_tx_exec(dev);
+	ata8510_set_state(dev, TX_ON);
+
     return 0;
 }
 
 void ata8510_tx_prepare(ata8510_t *dev)
 {
+	uint8_t TxPreambleBuffer[]={0x04, 0x70, 0x8E, 0x0A, 0x55, 0x55, 0x10, 0x55, 0x56};
+	ata8510_WriteTxPreamble(dev, ATA8510_WriteTxPreambleBuffer_LEN, &TxPreambleBuffer[0]);
+	DEBUG("ata8510_WriteTxPreamble");
 }
 
 size_t ata8510_tx_load(ata8510_t *dev, uint8_t *data,
                          size_t len, size_t offset)
 {
-    return 0;
+	ata8510_WriteTxFifo(dev, strlen((char *)data), data);
+	DEBUG("ata8510_WriteTxFifo\n\r");
+   
+	return 0;
 }
 
 void ata8510_tx_exec(ata8510_t *dev)
 {
-}
-
-
-void ata8510_tx32bytes_send(ata8510_t *dev, uint8_t *data)
-{
-
-	uint8_t TxPreambleBuffer[]={0x04, 0x70, 0x8E, 0x0A, 0x55, 0x55, 0x10, 0x55, 0x56};
 	uint8_t TxSequence[]={
 		0x40,		// 0, Chn 1, Serv 0
 		0x50,		// 1, Chn 2, Serv 0
@@ -180,24 +191,9 @@ void ata8510_tx32bytes_send(ata8510_t *dev, uint8_t *data)
 		0x52,		// 7, Chn 2, Serv 2
 		0x62,		// 8, Chn 3, Serv 2
 	};
-	uint8_t seq_idx;
-
-
-	ata8510_SetIdleMode(dev);
-	DEBUG("ata8510_SetIdleMode\n\r");
-//	delay_ms(1);
-	DEBUG("-------- Transmission request\r\n");
-
-	ata8510_WriteTxPreamble(dev, ATA8510_WriteTxPreambleBuffer_LEN, &TxPreambleBuffer[0]);
-	DEBUG("ata8510_WriteTxPreamble");
-//	delay_us( 100);
-
-	ata8510_WriteTxFifo(dev, strlen((char *)data), data);
-	DEBUG("ata8510_WriteTxFifo\n\r");
-//	delay_us(100);
-
-	seq_idx = 0;
+	uint8_t seq_idx = 0;
 	ata8510_SetSystemMode(dev, ATA8510_RF_TXMODE, TxSequence[seq_idx]);
 	DEBUG("ata8510_SetSystemMode TXMode\n\r");
-//	delay_ms(250);
 }
+
+

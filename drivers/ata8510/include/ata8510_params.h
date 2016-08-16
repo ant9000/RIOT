@@ -68,6 +68,7 @@ static const ata8510_params_t ata8510_params[] =
 #endif
 };
 
+
 #define ATA8510_CMD_SETPOLLINGMODE		(0x23)
 #define ATA8510_CMD_SETIDLEMODE			(0x00)
 #define ATA8510_CMD_READRXFILLLEVEL		(0x01)
@@ -77,6 +78,7 @@ static const ata8510_params_t ata8510_params[] =
 #define ATA8510_CMD_GETEVENTBYTE		(0x04)
 #define ATA8510_CMD_READRSSIFIFO		(0x05)
 #define ATA8510_CMD_READRXFIFO			(0x06)
+
 #define ATA8510_CMD_WRITESRAM			(0x07)
 #define ATA8510_CMD_READSRAM			(0x08)
 #define ATA8510_CMD_WRITEEEPROM			(0x09)
@@ -89,8 +91,6 @@ static const ata8510_params_t ata8510_params[] =
 #define ATA8510_CMD_STARTRSSIMSRMNT		(0x1B)
 #define ATA8510_CMD_GETRSSIMSRMNT		(0x1C)
 
-#define ATA8510_CMD_SETPOLLINGMODE_LEN		(3)
-#define ATA8510_CMD_SETIDLEMODE_LEN	        (3)
 #define ATA8510_CMD_READRXFILLLEVEL_LEN		(3)
 #define ATA8510_CMD_READTXFILLLEVEL_LEN		(3)
 #define ATA8510_CMD_READRSSIFILLLEVEL_LEN	(3)
