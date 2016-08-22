@@ -23,6 +23,7 @@
 #include "ata8510_internal.h"
 #include "ata8510_params.h"
 #include "periph/spi.h"
+#include "xtimer.h"
 
 #define ENABLE_DEBUG (0)
 #include "debug.h"
@@ -156,6 +157,30 @@ void ata8510_ReadRxFIFO(ata8510_t *dev, uint8_t len, uint8_t *data){
 	);
 }
 
+void ata8510_write_sram_register(ata8510_t *dev, uint16_t addr, uint8_t data){
+	// writes n=len consecutive bytes (max 16) in the 8510 SRAM or registers starting from 16bits address addr
+	uint8_t addrh = (addr&0xFF00)>>8;
+	uint8_t addrl = addr&0x00FF;
+	uint8_t command[5]={ATA8510_CMD_WRITESRAM,1,addrh,addrl,data};
+	uint8_t dummy[5]={0,0,0,0,0};
+
+	ata8510_send_cmd(dev, command, dummy, 5);
+	DEBUG("[ata8510] Write SRAM / Register: addr = 0x%04x : ", addr,	command[4]);
+}
+
+uint8_t ata8510_read_sram_register(ata8510_t *dev, uint16_t addr){
+	// reads 1 byte from the 8510 SRAM or register from 16bits address addr
+	uint8_t addrh = (addr&0xFF00)>>8;
+	uint8_t addrl = addr&0x00FF;
+	uint8_t command[6]={ATA8510_CMD_READSRAM,1,addrh,addrl,0x00,0x00};
+	uint8_t data[6]={0,0,0,0,0,0};
+	ata8510_send_cmd(dev, command, data, 6);
+	DEBUG("[ata8510] Read SRAM / Register: addr = 0x%04x : 0x%02x or %dd\n", addr, data[5]);
+	return data[5];
+}
+
+
+
 void ata8510_StartRSSI_Measurement(ata8510_t *dev, uint8_t service, uint8_t channel){
 	uint8_t command[2]={ATA8510_CMD_STARTRSSIMSRMNT,0x00};
 	uint8_t dummy[2];
@@ -178,6 +203,7 @@ void ata8510_StartRSSI_Measurement(ata8510_t *dev, uint8_t service, uint8_t chan
 		"[ata8510] Start RSSI Measurement: [0x%02x 0x%02x]\n",
 		command[0], command[1]
 	);
+	ata8510_set_state(dev, RSSIMEAS);
 }
 
 void ata8510_GetRSSI_Value(ata8510_t *dev, uint8_t *data){
@@ -271,6 +297,7 @@ void ata8510_set_option(ata8510_t *dev, uint16_t option, bool state)
 }
 
 ATA8510STATES state8510;
+ATA8510STATES state8510after_tx;
 
 void ata8510_set_state(ata8510_t *dev, uint8_t state)
 {
@@ -282,8 +309,19 @@ uint8_t ata8510_get_state(ata8510_t *dev)
 	return state8510;
 }
 
+void ata8510_set_state_after_tx(ata8510_t *dev, uint8_t state)
+{
+	state8510after_tx = state;
+}
+
+uint8_t ata8510_get_state_after_tx(ata8510_t *dev)
+{
+	return state8510after_tx;
+}
+
 void ata8510_reset_state_machine(ata8510_t *dev)
 {
 	ata8510_SetIdleMode(dev);
 	state8510 = IDLE;
+	state8510after_tx = IDLE;
 }

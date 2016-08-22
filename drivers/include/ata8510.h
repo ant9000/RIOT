@@ -248,6 +248,27 @@ void ata8510_ReadRSSIFIFO(ata8510_t *dev, uint8_t len, uint8_t *data);
 void ata8510_ReadRxFIFO(ata8510_t *dev, uint8_t len, uint8_t *data);
 
 /**
+ * @brief   Write SRAM / Register
+ *
+ * @param[in] dev           device to read from
+ * @param[in] addr          address (16 bits) from where to write
+ * @param[in] data          (1 byte) data to be written
+ *
+ * @return                  -
+ */
+void ata8510_write_sram_register(ata8510_t *dev, uint16_t addr, uint8_t data);
+
+/**
+ * @brief   Read SRAM / Register
+ * @param[in] dev           device to read from
+ * @param[in] addr          address (16 bits) of SRAM / register to read
+ *
+ * @return                  the SRAM / Register wanted
+ */
+uint8_t ata8510_read_sram_register(ata8510_t *dev, uint16_t addr);
+
+
+/**
  * @brief   Start RSSI Measurement
  *
  * @param[in] dev           device to read from
@@ -448,7 +469,8 @@ typedef enum {
 	IDLE = 0,		/* 0: IDLE state No TRX, waiting for commands */
 	TX_ON,			/* 1: Transmission is ongoing */
 	RX_ON,			/* 2: Reception in progress (for payloads more than 32 bytes) */
-	POLLING			/* 3: POLLING state */
+	POLLING,		/* 3: POLLING state */
+	RSSIMEAS		/* 4: RSSI Measurement */
 } ATA8510STATES;
 
 
@@ -468,6 +490,25 @@ void ata8510_set_state(ata8510_t *dev, uint8_t state);
  * @return                  the current state
  */
 uint8_t ata8510_get_state(ata8510_t *dev);
+
+/**
+ * @brief   Set the wanted state of the given device after the end of the current tx 
+ *          ( it will be set by the callback function after the end of the Tx) 
+ *
+ * @param[in] dev           device to change state of
+ * @param[in] state         the targeted new state
+ */
+void ata8510_set_state_after_tx(ata8510_t *dev, uint8_t state);
+
+/**
+ * @brief   Get the desired state of the given device after a transmission 
+ *          ( it will be set by the callback function after the end of the Tx) 
+ *
+ * @param[in] dev           device to change state of
+ *
+ * @return                  the current state
+ */
+uint8_t ata8510_get_state_after_tx(ata8510_t *dev);
 
 /**
  * @brief   Reset the internal state machine to TRX_OFF mode.
@@ -492,7 +533,7 @@ void ata8510_reset_state_machine(ata8510_t *dev);
  * @return                  number of bytes that were actually send
  * @return                  0 on error
  */
-size_t ata8510_send(ata8510_t *dev, uint8_t *data, size_t len, uint8_t service, uint8_t channel);
+size_t ata8510_send(ata8510_t *dev, uint8_t *data, size_t len, uint8_t service, uint8_t channel, ATA8510STATES state_after_tx);
 
 /**
  * @brief   Prepare for sending of data
@@ -523,6 +564,16 @@ size_t ata8510_tx_load(ata8510_t *dev, uint8_t *data, size_t len,
  * @param[in] dev           device to trigger
  */
 void ata8510_tx_exec(ata8510_t *dev, uint8_t service, uint8_t channel);
+
+/**
+ * @brief   Read Error Code (to be used after a SYS_ERR set bit in first byte of events.system)
+ *
+ * @param[in] dev           device to read error code
+ *
+ *  * @return               16 bits System Error (first byte) and SSM state machine state (second byte)   
+ */
+uint16_t ata8510_read_error_code(ata8510_t *dev);
+
 
 #ifdef __cplusplus
 }

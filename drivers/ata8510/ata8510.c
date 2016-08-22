@@ -26,8 +26,9 @@
 #include "ata8510_internal.h"
 #include "ata8510_netdev.h"
 #include "ata8510_params.h"
+#include "xtimer.h"
 
-#define ENABLE_DEBUG (1)
+#define ENABLE_DEBUG (0)
 #include "debug.h"
 
 
@@ -146,7 +147,7 @@ bool ata8510_cca(ata8510_t *dev)
     return false;
 }
 
-size_t ata8510_send(ata8510_t *dev, uint8_t *data, size_t len, uint8_t service, uint8_t channel)
+size_t ata8510_send(ata8510_t *dev, uint8_t *data, size_t len, uint8_t service, uint8_t channel, ATA8510STATES state_after_tx)
 {
 	ata8510_SetIdleMode(dev);
 	ata8510_set_state(dev, IDLE);
@@ -159,6 +160,7 @@ size_t ata8510_send(ata8510_t *dev, uint8_t *data, size_t len, uint8_t service, 
 	ata8510_tx_load(dev, data, len, 0);
 	ata8510_tx_exec(dev, service, channel);
 	ata8510_set_state(dev, TX_ON);
+	ata8510_set_state_after_tx(dev, state_after_tx);
 
     return 0;
 }
@@ -166,6 +168,17 @@ size_t ata8510_send(ata8510_t *dev, uint8_t *data, size_t len, uint8_t service, 
 void ata8510_tx_prepare(ata8510_t *dev)
 {
 	uint8_t TxPreambleBuffer[]={0x04, 0x70, 0x8E, 0x0A, 0x55, 0x55, 0x10, 0x55, 0x56};
+	uint8_t mydataRSSI[19], myrssilen;
+	uint8_t i;
+
+	myrssilen=ata8510_ReadFillLevelRSSIFIFO(dev);
+	DEBUG("tx_prepare: rssilen = %d\n",(int)myrssilen);
+	if (myrssilen>0) {
+		ata8510_ReadRSSIFIFO(dev, myrssilen, mydataRSSI);
+		for (i=0; i< myrssilen; i++) DEBUG(" %d", mydataRSSI[i]);
+	}
+	DEBUG("\n");
+
 	ata8510_WriteTxPreamble(dev, ATA8510_WriteTxPreambleBuffer_LEN, &TxPreambleBuffer[0]);
 	DEBUG("ata8510_WriteTxPreamble");
 }
@@ -196,6 +209,17 @@ void ata8510_tx_exec(ata8510_t *dev, uint8_t service, uint8_t channel)
 	}
 	ata8510_SetSystemMode(dev, ATA8510_RF_TXMODE, modeTx);
 	DEBUG("ata8510_SetSystemMode TXMode. modeTx = %02x\n\r",modeTx);
+}
+
+uint16_t ata8510_read_error_code(ata8510_t *dev)
+{
+	uint8_t syserr = 0, ssmstate = 0;
+	syserr = ata8510_read_sram_register(dev, 0x300);
+//	xtimer_usleep(100);
+	ssmstate = ata8510_read_sram_register(dev, 0x301);
+	DEBUG("read_error_code: System Error %02x; SSM machine state %02x\n",syserr, ssmstate);
+
+	return syserr<<8 | ssmstate;
 }
 
 
