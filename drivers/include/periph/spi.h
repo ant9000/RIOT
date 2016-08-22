@@ -101,6 +101,8 @@ typedef enum {
 #ifndef HAVE_SPI_SPEED_T
 typedef enum {
     SPI_SPEED_100KHZ = 0,       /**< drive the SPI bus with 100KHz */
+    SPI_SPEED_200KHZ,           /**< drive the SPI bus with 200KHz */
+    SPI_SPEED_250KHZ,           /**< drive the SPI bus with 250KHz */
     SPI_SPEED_400KHZ,           /**< drive the SPI bus with 400KHz */
     SPI_SPEED_1MHZ,             /**< drive the SPI bus with 1MHz */
     SPI_SPEED_5MHZ,             /**< drive the SPI bus with 5MHz */

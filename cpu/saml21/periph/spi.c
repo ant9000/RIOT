@@ -89,6 +89,12 @@ int spi_init_master(spi_t dev, spi_conf_t conf, spi_speed_t speed)
         case SPI_SPEED_100KHZ:
             f_baud = 100000;
             break;
+        case SPI_SPEED_200KHZ:
+            f_baud = 200000;
+            break;
+        case SPI_SPEED_250KHZ:
+            f_baud = 250000;
+            break;
         case SPI_SPEED_400KHZ:
             f_baud = 400000;
             break;
