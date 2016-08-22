@@ -18,6 +18,11 @@ USEMODULE += xtimer
 # ROB use rtc
 FEATURES_OPTIONAL += periph_rtc
 
+# ROB use random
+USEMODULE += random
+
+# ROB use checksum
+USEMODULE += checksum
 
 CFLAGS += -DDEVELHELP
 
