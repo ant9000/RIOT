@@ -300,8 +300,8 @@ uint8_t ata8510_get_message(uint8_t *len, uint8_t *bufRx, uint8_t *service, uint
 //#define THREADRX
 //#define THREADTRX
 //#define THREADRSSIMEAS
-#define THREADTXRAND
-//#define THREADCHECKRXERRORS
+//#define THREADTXRAND
+#define THREADCHECKRXERRORS
 //#define THREADPS5S
 
 
@@ -421,7 +421,7 @@ char thread_RSSI_meas_stack[THREAD_STACKSIZE_MAIN];
 #include "random.h"
 #include "checksum/fletcher16.h"
 #define RAND_SEED 0xC0FFEE
-#define ID8510 2   // used as first character transmitted
+#define ID8510 3   // used as first character transmitted
 
 #define LISTENBEFORETALK
 void *thread_tx_rand(void *arg)     // Still has a problem on the very first message sent: the sniffing is returning zeroes. To be fixed..
@@ -467,26 +467,27 @@ void *thread_tx_rand(void *arg)     // Still has a problem on the very first mes
 
 
 		// test listen before talk
-		ata8510_write_sram_register(dev, 0x294, 0x29);  // set RSSI polling to 9 (6.8ms) to enable fast sniffing
+		ata8510_write_sram_register(dev, 0x294, 0x27);  // set RSSI polling to 9 (6.8ms) to enable fast sniffing
 
 		do {		
 			do {
 				// first loop of sensing
 				ata8510_StartRSSI_Measurement(dev, 0, 0);  // 0,0 are service and channel
-				xtimer_usleep(7000);
+				xtimer_usleep(6000);
 				ata8510_GetRSSI_Value(dev, data);
-				printf("RSSI = %d\n",data[2]);
-			} while (data[2] > 80 ); // exits when the present transmission by others ends.
+//				printf("RSSI = %d\n",data[2]);
+			} while (data[2] > 50 ); // exits when the present transmission by others ends.
 			myturn = 1;
+//			xtimer_usleep(20000);
 			// after the end of other transmission, sense channel for a random number of times + 2 
 			// if someone else took control, restart waiting with first loop, otherwise start transmit 
 			for (i=0; i<(((random_uint32() % 10)+2)*2); i++) {
 				ata8510_StartRSSI_Measurement(dev, 0, 0);
-				xtimer_usleep(7000);
+				xtimer_usleep(6000);
 				ata8510_GetRSSI_Value(dev, data);
 
-				printf("   RSSI = %d\n",data[2]);
-				if (data[2] > 80) { // if sensing channel occupied abort second loop and restart first loop of sensing
+//				printf("   RSSI = %d\n",data[2]);
+				if (data[2] > 50) { // if sensing channel occupied abort second loop and restart first loop of sensing
 					myturn = 0;
 					break;
 				}
@@ -560,7 +561,7 @@ void *thread_check_rx_errors(void *arg)
 
 	ata8510_SetPollingMode(dev);
 	while (1) {
-		xtimer_periodic_wakeup(&last_wakeup, INTERVALRX);
+		xtimer_periodic_wakeup(&last_wakeup, INTERVALCHECKRX);
 		uint8_t channel;
 		uint8_t service;
 		uint8_t len;
@@ -668,8 +669,9 @@ void *thread_check_rx_errors(void *arg)
 		} else {
 			mystate8510 = ata8510_get_state(dev);
 			mycount++;
-			printf("mycount %d\n",mycount);
-			if (mycount > 10) {
+			if (mycount > 41) { // over 4s
+				printf("mycount %d\n",mycount);
+				mycount = 0;
 				stops++;
 				ata8510_GetEventBytes(dev, data);
 				if (data[0] & 0x80) {
@@ -680,7 +682,7 @@ void *thread_check_rx_errors(void *arg)
 				}
 				printf("Check Ev.St. %02x %02x %02x %02x ev8510 %d st8510 %d lostint %d stops %d\n", 
 						data[0], data[1], data[2], data[3], event8510, mystate8510, lost_interrupts, stops);
-				if (blocked >0 || mycount > 20) {
+				if (blocked >0 || mycount > 41) {
 					// probably something went wrong. It is not anymore in polling state
 					ata8510_GetEventBytes(dev, data);
 					xtimer_usleep(70);
@@ -688,7 +690,6 @@ void *thread_check_rx_errors(void *arg)
 					xtimer_usleep(70);
 					ata8510_SetPollingMode(dev);
 					printf("Something wrong: blocked %d Set polling mode\n\n\n\n\n", blocked);
-					mycount = 0;
 				}
 			}
 		}
