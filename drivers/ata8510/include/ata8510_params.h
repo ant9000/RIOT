@@ -27,14 +27,14 @@ extern "C" {
 #endif
 
 /**
- * @brief   Set default configuration parameters for the AT86RF2xx driver
+ * @brief   Set default configuration parameters for the ATA8510 driver
  * @{
  */
 #ifndef ATA8510_PARAM_SPI
 #define ATA8510_PARAM_SPI         (SPI_0)
 #endif
 #ifndef ATA8510_PARAM_SPI_SPEED
-#define ATA8510_PARAM_SPI_SPEED   (SPI_SPEED_5MHZ)
+#define ATA8510_PARAM_SPI_SPEED   (SPI_SPEED_200KHZ)
 #endif
 #ifndef ATA8510_PARAM_CS
 #define ATA8510_PARAM_CS          (GPIO_PIN(0, 0))

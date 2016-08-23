@@ -87,6 +87,18 @@ typedef struct {
     uint8_t pending_tx;                     /**< keep track of pending TX calls
                                                  this is required to know when to
                                                  return to @ref ata8510_t::idle_state */
+    /* TODO: find a better way */
+    uint8_t rx_buffer[40];
+    uint8_t rx_len;
+    uint8_t rx_available;
+    uint8_t rx_service;
+    uint8_t rx_channel;
+    uint8_t RSSI[19];
+    int interrupts;
+    int sys_errors; 
+    int unknown_case;
+    int blocked;
+
     /** @} */
 } ata8510_t;
 
@@ -471,7 +483,7 @@ typedef enum {
 	RX_ON,			/* 2: Reception in progress (for payloads more than 32 bytes) */
 	POLLING,		/* 3: POLLING state */
 	RSSIMEAS		/* 4: RSSI Measurement */
-} ATA8510STATES;
+} ata8510_state_t;
 
 
 /**
@@ -533,7 +545,7 @@ void ata8510_reset_state_machine(ata8510_t *dev);
  * @return                  number of bytes that were actually send
  * @return                  0 on error
  */
-size_t ata8510_send(ata8510_t *dev, uint8_t *data, size_t len, uint8_t service, uint8_t channel, ATA8510STATES state_after_tx);
+size_t ata8510_send(ata8510_t *dev, uint8_t *data, size_t len, uint8_t service, uint8_t channel, ata8510_state_t state_after_tx);
 
 /**
  * @brief   Prepare for sending of data
@@ -574,6 +586,21 @@ void ata8510_tx_exec(ata8510_t *dev, uint8_t service, uint8_t channel);
  */
 uint16_t ata8510_read_error_code(ata8510_t *dev);
 
+
+/**
+ * @brief   Consume a received packet if available
+ *
+ * @param[in]  dev           device to read
+ * @param[out] len
+ * @param[out] buffer
+ * @param[out] service
+ * @param[out] channel
+ * @param[out] rssi
+ * @param[out] dBm
+ *
+ *  * @return               1 for packet available, 0 otherwise
+ */
+uint8_t ata8510_get_message(ata8510_t *dev, uint8_t *len, uint8_t *buffer, uint8_t *service, uint8_t *channel, int *rssi, int *dBm);
 
 #ifdef __cplusplus
 }

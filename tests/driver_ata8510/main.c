@@ -67,158 +67,7 @@ static const shell_command_t shell_commands[] = {
     { NULL, NULL, NULL }
 };
 
-int event8510;  // total number of 8510 events occurred
-uint8_t ata8510BufferRx[40];
-uint8_t ata8510msgreclen;
-uint8_t ata8510receivedMsg = 0;
-uint8_t ata8510receivedService;
-uint8_t ata8510receivedChannel;
-uint8_t RSSI=0;
-uint8_t dBm=0;
-uint8_t data[37];
-uint8_t saved8510status[4];
-uint8_t dataSFIFO[19];
-uint8_t dataRSSI[19];
-int syserrors = 0;
-uint16_t errorcode;
 int lost_interrupts=0;
-uint8_t blocked = 0;
-int	unknown_case;
-
-static void _isr(netdev2_t *dev){
-    uint8_t mystate8510, mynextstate8510;
-	uint8_t rxlen, rssilen, sfifolen = 0;;
-	uint8_t i;
-    ata8510_t *mydev = (ata8510_t *)dev;
-	event8510++;
-	ata8510_GetEventBytes(mydev, data);
-	if (data[0] & 0x80) {
-		// SYS_ERR happened
-		errorcode = ata8510_read_error_code(mydev);
-		DEBUG("     _isr SYS_ERR! %02x %02x %02x %02x Errorcode = 0x%04x  SysErr=%d  SSM state= %d\n",
-				data[0], data[1], data[2], data[3], errorcode, errorcode>>8, errorcode&0xff);
-		syserrors++;
-	}
-	mystate8510 = ata8510_get_state(mydev);
-	mynextstate8510 = ata8510_get_state_after_tx(mydev);
-	saved8510status[0] = data[0];  // save it now since if we print we lost the message	
-	saved8510status[1] = data[1];	
-	saved8510status[2] = data[2];	
-	saved8510status[3] = data[3];	
-	if (mystate8510 == 0) mystate8510 = 0;
-
-
-	switch (mystate8510) {
-		case IDLE:
-			DEBUG("_isr State IDLE!\n");
-		break;
-		case TX_ON:
-			switch (data[1]&0x10) {
-				case 0x10:
-				// end of transmission
-					DEBUG("End of Transmission!\n");
-					ata8510_SetIdleMode(mydev);
-					xtimer_usleep(70);
-					switch(mynextstate8510) {
-						case IDLE:
-						break;
-						case POLLING:
-							ata8510_SetPollingMode(mydev);
-							ata8510_set_state(mydev, POLLING);
-						break;	
-						default:
-							printf("_isr Cannot handle state 8510 %d after TX \n", mynextstate8510);
-					}
-				break;
-				default: {
-					printf("_isr Unknown events.events %02x [%02x] %02x %02x \n", 
-							data[0], data[1], data[2], data[3]);
-					unknown_case++;
-				}
-			DEBUG("_isr State TX_ON!\n");
-			}
-		break;
-		case RX_ON:
-			DEBUG("_isr State RX_ON!\n");
-		break;
-		case POLLING:
-			switch (data[0]) {
-				case 0x00:
-				case 0x02:
-				case 0x22:
-				case 0x20:
-				case 0x80: // SYS_ERR: probably after a wrong reception. For now restart 8510
-				case 0x82:	
-					// receiving! Even after an error..
-					if (data[1] & 0x10) {  // EOT in Rx. Message complete. We can read
-						ata8510receivedService = (data[3] & 0x07);
-						ata8510receivedChannel = (data[3] & 0x30)>>4;
-						rxlen = ata8510_ReadFillLevelRxFIFO(mydev);
-						ata8510msgreclen = rxlen;							
-						ata8510_ReadRxFIFO(mydev, rxlen, data);
-						data[rxlen+3]=0x00; // close in any case the message received
-						rssilen=ata8510_ReadFillLevelRSSIFIFO(mydev);
-						if (rssilen>4) {
-							ata8510_ReadRSSIFIFO(mydev, rssilen, dataRSSI);
-							dataRSSI[2]=rssilen; // uses the dummy location to save the length of the RSSI buffer.
-						} else {
-							// if interrupt SFIFO has emptied the SFIFO get from dataSFIFO some RSSI values
-							for (i=3; i< 10; i++)	dataRSSI[i] = dataSFIFO[i];
-							dataRSSI[2] = 7;
-							for (i=3; i< 10; i++) printf(" %d", dataSFIFO[i]);
-							DEBUG("--\n");
-						}
-						ata8510_SetIdleMode(mydev);
-						xtimer_usleep(70);
-						ata8510_SetPollingMode(mydev);
-						for (i=0; i<rxlen+1; i++) {
-							ata8510BufferRx[i] = data[i+3];  // raw copy of received bytes in ata8510BufferRx					
-						}
-						ata8510receivedMsg = 1; 
-						DEBUG("_isr RxLen %d  8510event %d Data Received: %s\n", 
-								rxlen, event8510,(char *)&data[3]);
-					}
-					break;	
-				case 0x04:
-				case 0x24:
-						// SFIFO event
-						;
-					break;
-				default:
-						printf("   _isr Unknown case %02x %02x %02x %02x event8510 %d\n", 
-								data[0], data[1], data[2], data[3], event8510);
-						blocked = 1;
-						unknown_case++;
-//							ata8510_SetPollingMode(mydev);			
-					break;
-			DEBUG("_isr State POLLING!\n");
-			}
-		break;
-		case RSSIMEAS:
-			DEBUG("_isr State RSSI Measure!\n");
-			;
-		break;
-		default:
-			printf("_isr Unknown case: state 8510 = %d\n", mystate8510);
-			unknown_case++;
-	}
-
-	if (saved8510status[0]&0x04) { 
-		// SFIFO event. In any case read the SFIFO
-		sfifolen=ata8510_ReadFillLevelRSSIFIFO(mydev);
-		DEBUG("_isr rssilen = %d\n",(int)sfifolen);
-		if (sfifolen>0) {
-			ata8510_ReadRSSIFIFO(mydev, sfifolen, dataSFIFO);
-			for (i=0; i< sfifolen; i++) DEBUG(" %d", dataSFIFO[i]);
-		}
-		DEBUG("\n");
-	}
-
-	DEBUG("_isr 8510 Ev. St. %02x %02x %02x %02x ev8510 %d st8510 %d lostint %d unknown %d\n", 
-			saved8510status[0], saved8510status[1], saved8510status[2], saved8510status[3], 
-			event8510, mystate8510, lost_interrupts, unknown_case);
-
-}
 
 static void _event_cb(netdev2_t *dev, netdev2_event_t event)
 {
@@ -255,43 +104,13 @@ void *_recv_thread(void *arg)
         msg_receive(&msg);
         if (msg.type == MSG_TYPE_ISR) {
             netdev2_t *dev = msg.content.ptr;
-            // dev->driver->isr(dev);
-            _isr(dev);
-            // ps();  // troppi ps. Meglio con il thread ogni 5s..
+            dev->driver->isr(dev);
         }
         else {
             puts("unexpected message type");
         }
     }
 }
-
-uint8_t ata8510_get_message(uint8_t *len, uint8_t *bufRx, uint8_t *service, uint8_t *channel, int *rssi, int *dBm){
-	uint8_t i;
-	if (ata8510receivedMsg == 0) return 0;
-	else {
-		for (i=0; i<=ata8510msgreclen; i++) {  // copies also the 0x00
-			bufRx[i] = ata8510BufferRx[i];
-		}
-		*len = ata8510msgreclen;
-		// calculate RSSI and dBm values
-		*rssi=0;
-		if (dataRSSI[2] > 0) {
-			for (i=0; i<dataRSSI[2]; i++) {
-				*rssi+=dataRSSI[i+3];
-			}
-			*rssi /= dataRSSI[2];
-			*dBm = (*rssi>>1) - 135;
-			DEBUG(" RSSI values = %d RSSI = %d   dBm = %d\n", dataRSSI[2], *rssi, *dBm);
-		} else {
-			DEBUG("no RSSI values read\n");
-		}
-		*service = 	ata8510receivedService;
-		*channel = 	ata8510receivedChannel;
-
-		ata8510receivedMsg = 0;
-		return 1;
-	}
-} 
 
 // ------------------------------------------------------------------------------
 
@@ -346,7 +165,7 @@ void *thread_rx(void *arg)
 	while (1) {
 		xtimer_periodic_wakeup(&last_wakeup, INTERVALRX);
 
-		if (ata8510_get_message(&len, Buffer, &service, &channel, &valRSSI, &valRSSIdBm) ) {
+		if (ata8510_get_message(dev, &len, Buffer, &service, &channel, &valRSSI, &valRSSIdBm) ) {
 			printf("Thread_Rx Message Received: %s\n",Buffer);  // only if ASCII messages
 			printf("  RSSI = %d   dBm = %d  service = %d  channel = %d\n", 
 					valRSSI, valRSSIdBm, service, channel);
@@ -378,7 +197,7 @@ void *thread_trx(void *arg)
 	ata8510_SetPollingMode(dev);
 	while (1) {
 		xtimer_periodic_wakeup(&last_wakeup, INTERVALRX);
-		if (ata8510_get_message(&len, Buffer, &service, &channel, &valRSSI, &valRSSIdBm) ) {
+		if (ata8510_get_message(dev, &len, Buffer, &service, &channel, &valRSSI, &valRSSIdBm) ) {
 			printf("Thread_TRx Message Received: %s\n",Buffer);  // only if ASCII messages
 			printf("  RSSI = %d   dBm = %d  service = %d  channel = %d\n", valRSSI, valRSSIdBm, service, channel);
 			sprintf(msg, "YARM RIOT ACK!");
@@ -512,7 +331,6 @@ char thread_tx_rand_stack[THREAD_STACKSIZE_MAIN];
 #define MAXYARMTX 5    // max permitted value is 9 for now
 void *thread_check_rx_errors(void *arg)
 {
-	(void) arg;
 	ata8510_t *dev = &devs[0]; // acquires the 8510 device handle
 	int valRSSI=0;
 	int valRSSIdBm=0;
@@ -567,7 +385,7 @@ void *thread_check_rx_errors(void *arg)
 		uint8_t len;
 		uint8_t Buffer[260];
 
-		if (ata8510_get_message(&len, Buffer, &service, &channel, &valRSSI, &valRSSIdBm) ) {
+		if (ata8510_get_message(dev, &len, Buffer, &service, &channel, &valRSSI, &valRSSIdBm) ) {
 			mycount = 0;
 			printf("RxCheck Msg Rec: %s ",Buffer);  // only if ASCII messages
 			printf("RSSI=%d dBm=%d Srvc=%d Ch=%d\n", 
@@ -575,17 +393,17 @@ void *thread_check_rx_errors(void *arg)
 			// analysis of received message
 			tot_messages++;
 			discard = 0;
-			if (ata8510BufferRx[0] > '0' && ata8510BufferRx[0] <= ('0'+MAXYARMTX)) {
-				yarmtxidreceived = ata8510BufferRx[0] - 0x30;  // extract YARM ID
+			if (Buffer[0] > '0' && Buffer[0] <= ('0'+MAXYARMTX)) {
+				yarmtxidreceived = Buffer[0] - 0x30;  // extract YARM ID
 				power10 = 1;	
 				yarmtxreceivedcounter = 0;				
 				for (i=6; i>=1; i--) {  // extract counter sent by YARM (bytes 1 to 7)
-					if (ata8510BufferRx[i] >= '0' && ata8510BufferRx[i] <= '9') { // is a digit
-						yarmtxreceivedcounter += ((ata8510BufferRx[i]-0x30) * power10);
+					if (Buffer[i] >= '0' && Buffer[i] <= '9') { // is a digit
+						yarmtxreceivedcounter += ((Buffer[i]-0x30) * power10);
 						power10 *= 10;
 					} else {
 						printf("     ERROR: not a digit in %d position of message: %c. Discard Message!\n", 
-								i, ata8510BufferRx[i]);
+								i, Buffer[i]);
 						discard = 1;						
 						break;								
 					}
@@ -594,15 +412,15 @@ void *thread_check_rx_errors(void *arg)
 				if (discard == 0) {
 					if (rxfirstreceived[yarmtxidreceived] == 1) {
 						// check msg length
-						if (strlen((char *)ata8510BufferRx) != 10) {
+						if (strlen((char *)Buffer) != 10) {
 							printf("     ERROR: wrong message length: Discard Message!\n");
 						} else {
 							// checksum control
-							checksum_received = (ata8510BufferRx[8]<=0x39 ? (ata8510BufferRx[8]-0x30)*16 : 
-												((ata8510BufferRx[8]-0x61)+10)*16) + 
-												(ata8510BufferRx[9]<=0x39 ? (ata8510BufferRx[9]-0x30) : 
-												(ata8510BufferRx[9]-0x61)+10);
-							checksum = fletcher16(ata8510BufferRx, 8);
+							checksum_received = (Buffer[8]<=0x39 ? (Buffer[8]-0x30)*16 : 
+												((Buffer[8]-0x61)+10)*16) + 
+												(Buffer[9]<=0x39 ? (Buffer[9]-0x30) : 
+												(Buffer[9]-0x61)+10);
+							checksum = fletcher16(Buffer, 8);
 							if (checksum != checksum_received) {
 								printf("     ERROR: wrong checksum received %02x instead of %02x: Discard Message!\n", 
 										checksum_received, checksum);
@@ -656,15 +474,15 @@ void *thread_check_rx_errors(void *arg)
 
 					// the print of Time(s) still is not working well after 4295s
 					printf("\nTime(s) %d Msgs: %d Restarts: %d SysErrs %d Errors: %d %%Error: %d.%02d%%\n", 
-							time_elapsed + overflows_time*4295, tot_messages, tot_restarts, syserrors, 
+							time_elapsed + overflows_time*4295, tot_messages, tot_restarts, dev->sys_errors, 
 							tot_errors, perc_error_integer, perc_error_decimal);
 					mystate8510 = ata8510_get_state(dev);
 					mynextstate8510 = ata8510_get_state_after_tx(dev);
-					printf("  8510st. %d  nextst. %d lostint %d mycount %d stops %d unknown %d\n\n", 
-							mystate8510, mynextstate8510, lost_interrupts, mycount, stops, unknown_case);
+					printf("  8510st. %d  nextst. %d mycount %d stops %d\n\n", 
+							mystate8510, mynextstate8510, mycount, stops);
 				}
 			} else {
-				printf("     ERROR: wrong YARM TX ID received: %c. Discard Message\n",ata8510BufferRx[0]);
+				printf("     ERROR: wrong YARM TX ID received: %c. Discard Message\n",Buffer[0]);
 			} 				
 		} else {
 			mystate8510 = ata8510_get_state(dev);
@@ -680,16 +498,16 @@ void *thread_check_rx_errors(void *arg)
 					printf("     _isr SYS_ERR ! Errorcode = 0x%04x  SysErr=%d  SSM state= %d\n   ",
 							errorcode, errorcode>>8, errorcode&0xff);
 				}
-				printf("Check Ev.St. %02x %02x %02x %02x ev8510 %d st8510 %d lostint %d stops %d\n", 
-						data[0], data[1], data[2], data[3], event8510, mystate8510, lost_interrupts, stops);
-				if (blocked >0 || mycount > 41) {
+				printf("Check Ev.St. %02x %02x %02x %02x st8510 %d stops %d\n", 
+						data[0], data[1], data[2], data[3], mystate8510, stops);
+				if (dev->blocked >0 || mycount > 41) {
 					// probably something went wrong. It is not anymore in polling state
 					ata8510_GetEventBytes(dev, data);
 					xtimer_usleep(70);
 					ata8510_SetIdleMode(dev);
 					xtimer_usleep(70);
 					ata8510_SetPollingMode(dev);
-					printf("Something wrong: blocked %d Set polling mode\n\n\n\n\n", blocked);
+					printf("Something wrong: blocked %d Set polling mode\n\n\n\n\n", dev->blocked);
 				}
 			}
 		}

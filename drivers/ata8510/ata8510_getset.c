@@ -296,32 +296,29 @@ void ata8510_set_option(ata8510_t *dev, uint16_t option, bool state)
 {
 }
 
-ATA8510STATES state8510;
-ATA8510STATES state8510after_tx;
-
 void ata8510_set_state(ata8510_t *dev, uint8_t state)
 {
-	state8510 = state;
+	dev->state = state;
 }
 
 uint8_t ata8510_get_state(ata8510_t *dev)
 {
-	return state8510;
+	return dev->state;
 }
 
 void ata8510_set_state_after_tx(ata8510_t *dev, uint8_t state)
 {
-	state8510after_tx = state;
+	dev->idle_state = state;
 }
 
 uint8_t ata8510_get_state_after_tx(ata8510_t *dev)
 {
-	return state8510after_tx;
+	return dev->idle_state;
 }
 
 void ata8510_reset_state_machine(ata8510_t *dev)
 {
 	ata8510_SetIdleMode(dev);
-	state8510 = IDLE;
-	state8510after_tx = IDLE;
+	dev->state = IDLE;
+	dev->idle_state = IDLE;
 }

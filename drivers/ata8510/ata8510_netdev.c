@@ -31,6 +31,7 @@
 #include "ata8510.h"
 #include "ata8510_netdev.h"
 #include "ata8510_internal.h"
+#include "xtimer.h"
 
 #define ENABLE_DEBUG (1)
 #include "debug.h"
@@ -124,6 +125,135 @@ static int _set(netdev2_t *netdev, netopt_t opt, void *val, size_t len)
     return res;
 }
 
-static void _isr(netdev2_t *netdev)
-{
+static void _isr(netdev2_t *netdev){
+    uint8_t data[37];
+    uint8_t saved8510status[4];
+    uint8_t dataSFIFO[19];
+    uint8_t mystate8510, mynextstate8510;
+	uint8_t rxlen, rssilen, sfifolen = 0;;
+	uint8_t i;
+    uint16_t errorcode;
+
+    ata8510_t *dev = (ata8510_t *)netdev;
+	dev->interrupts++;
+	ata8510_GetEventBytes(dev, data);
+	if (data[0] & 0x80) {
+		// SYS_ERR happened
+		errorcode = ata8510_read_error_code(dev);
+		DEBUG("     _isr SYS_ERR! %02x %02x %02x %02x Errorcode = 0x%04x  SysErr=%d  SSM state= %d\n",
+				data[0], data[1], data[2], data[3], errorcode, errorcode>>8, errorcode&0xff);
+		dev->sys_errors++;
+	}
+	mystate8510 = ata8510_get_state(dev);
+	mynextstate8510 = ata8510_get_state_after_tx(dev);
+	saved8510status[0] = data[0];  // save it now since if we print we lost the message
+	saved8510status[1] = data[1];
+	saved8510status[2] = data[2];
+	saved8510status[3] = data[3];
+
+	switch (mystate8510) {
+		case IDLE:
+			DEBUG("_isr State IDLE!\n");
+		break;
+		case TX_ON:
+			switch (data[1]&0x10) {
+				case 0x10:
+				// end of transmission
+					DEBUG("End of Transmission!\n");
+					ata8510_SetIdleMode(dev);
+					xtimer_usleep(70);
+					switch(mynextstate8510) {
+						case IDLE:
+						break;
+						case POLLING:
+							ata8510_SetPollingMode(dev);
+							ata8510_set_state(dev, POLLING);
+						break;
+						default:
+							printf("_isr Cannot handle state 8510 %d after TX \n", mynextstate8510);
+					}
+				break;
+				default: {
+					printf("_isr Unknown events.events %02x [%02x] %02x %02x \n",
+							data[0], data[1], data[2], data[3]);
+					dev->unknown_case++;
+				}
+			DEBUG("_isr State TX_ON!\n");
+			}
+		break;
+		case RX_ON:
+			DEBUG("_isr State RX_ON!\n");
+		break;
+		case POLLING:
+			switch (data[0]) {
+				case 0x00:
+				case 0x02:
+				case 0x22:
+				case 0x20:
+				case 0x80: // SYS_ERR: probably after a wrong reception. For now restart 8510
+				case 0x82:
+					// receiving! Even after an error..
+					if (data[1] & 0x10) {  // EOT in Rx. Message complete. We can read
+						dev->rx_service = (data[3] & 0x07);
+						dev->rx_channel = (data[3] & 0x30)>>4;
+						rxlen = ata8510_ReadFillLevelRxFIFO(dev);
+						dev->rx_len = rxlen;
+						ata8510_ReadRxFIFO(dev, rxlen, data);
+						data[rxlen+3]=0x00; // close in any case the message received
+						rssilen=ata8510_ReadFillLevelRSSIFIFO(dev);
+						if (rssilen>4) {
+							ata8510_ReadRSSIFIFO(dev, rssilen, dev->RSSI);
+							dev->RSSI[2]=rssilen; // uses the dummy location to save the length of the RSSI buffer.
+						} else {
+							// if interrupt SFIFO has emptied the SFIFO get from dataSFIFO some RSSI values
+							for (i=3; i< 10; i++)	dev->RSSI[i] = dataSFIFO[i];
+							dev->RSSI[2] = 7;
+							for (i=3; i< 10; i++) printf(" %d", dataSFIFO[i]);
+							DEBUG("--\n");
+						}
+						ata8510_SetIdleMode(dev);
+						xtimer_usleep(70);
+						ata8510_SetPollingMode(dev);
+						for (i=0; i<rxlen+1; i++) {
+							dev->rx_buffer[i] = data[i+3];  // raw copy of received bytes in ata8510 receive buffer
+						}
+						dev->rx_available = 1;
+						DEBUG("_isr RxLen %d  8510event %d Data Received: %s\n",
+								rxlen, dev->interrupts,(char *)&data[3]);
+					}
+					break;
+				case 0x04:
+				case 0x24:
+						// SFIFO event
+						;
+					break;
+				default:
+						printf("   _isr Unknown case %02x %02x %02x %02x interrupts %d\n",
+								data[0], data[1], data[2], data[3], dev->interrupts);
+						dev->blocked = 1;
+						dev->unknown_case++;
+//							ata8510_SetPollingMode(dev);
+					break;
+			DEBUG("_isr State POLLING!\n");
+			}
+		break;
+		case RSSIMEAS:
+			DEBUG("_isr State RSSI Measure!\n");
+			;
+		break;
+		default:
+			printf("_isr Unknown case: state 8510 = %d\n", mystate8510);
+			dev->unknown_case++;
+	}
+
+	if (saved8510status[0]&0x04) {
+		// SFIFO event. In any case read the SFIFO
+		sfifolen=ata8510_ReadFillLevelRSSIFIFO(dev);
+		DEBUG("_isr rssilen = %d\n",(int)sfifolen);
+		if (sfifolen>0) {
+			ata8510_ReadRSSIFIFO(dev, sfifolen, dataSFIFO);
+			for (i=0; i< sfifolen; i++) DEBUG(" %d", dataSFIFO[i]);
+		}
+		DEBUG("\n");
+	}
 }
