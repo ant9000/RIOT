@@ -108,6 +108,9 @@ static int _recv(netdev2_t *netdev, void *buf, size_t len, void *info)
     uint8_t i;
 
     ata8510_t *dev = (ata8510_t *)netdev;
+
+    // TODO: avoid races when accessing dev->rx_*
+
     if(!dev->rx_available){ return 0; }
 
     pkt_len = dev->rx_len;
@@ -177,16 +180,20 @@ static void _isr(netdev2_t *netdev){
     uint8_t mystate8510, mynextstate8510;
 	uint8_t rxlen, rssilen, sfifolen = 0;;
 	uint8_t i;
+#if ENABLE_DEBUG
     uint16_t errorcode;
+#endif
 
     ata8510_t *dev = (ata8510_t *)netdev;
 	dev->interrupts++;
 	ata8510_GetEventBytes(dev, data);
 	if (data[0] & 0x80) {
 		// SYS_ERR happened
+#if ENABLE_DEBUG
 		errorcode = ata8510_read_error_code(dev);
 		DEBUG("     _isr SYS_ERR! %02x %02x %02x %02x Errorcode = 0x%04x  SysErr=%d  SSM state= %d\n",
 				data[0], data[1], data[2], data[3], errorcode, errorcode>>8, errorcode&0xff);
+#endif
 		dev->sys_errors++;
 	}
 	mystate8510 = ata8510_get_state(dev);
@@ -240,6 +247,7 @@ static void _isr(netdev2_t *netdev){
 						dev->rx_service = (data[3] & 0x07);
 						dev->rx_channel = (data[3] & 0x30)>>4;
 
+                        // TODO: avoid races when accessing dev->rx_*
                         rxlen = ata8510_ReadFillLevelRxFIFO(dev);
                         dev->rx_len = rxlen;
                         ata8510_ReadRxFIFO(dev, rxlen, dev->rx_buffer);
@@ -248,6 +256,7 @@ static void _isr(netdev2_t *netdev){
                         DEBUG("_isr RxLen %d  8510event %d Data Received: %s\n",
                             rxlen, dev->interrupts,(char *)&dev->rx_buffer[3]);
 
+                        // TODO: shouldn't RSSI be handled separately?
 						rssilen=ata8510_ReadFillLevelRSSIFIFO(dev);
 						if (rssilen>4) {
 							ata8510_ReadRSSIFIFO(dev, rssilen, dev->RSSI);
@@ -259,6 +268,8 @@ static void _isr(netdev2_t *netdev){
 							for (i=3; i< 10; i++) printf(" %d", dataSFIFO[i]);
 							DEBUG("--\n");
 						}
+
+                        // TODO: is this really needed?
 						ata8510_SetIdleMode(dev);
 						xtimer_usleep(70);
 						ata8510_SetPollingMode(dev);
