@@ -31,6 +31,15 @@
 #include "common.h"
 #include "ps.h"
 
+#include "ata8510.h"
+#include "od.h"
+#include "net/ieee802154.h"
+#include "net/netdev2.h"
+
+#include "common.h"
+
+#define MAX_LINE    (80)
+
 /* set intervals */
 #define INTERVALTX (5U * SEC_IN_USEC)
 #define INTERVALRX 300000U
@@ -60,6 +69,7 @@ static char stack[_STACKSIZE];
 static kernel_pid_t _recv_pid;
 
 ata8510_t devs[ATA8510_NUM];
+static uint8_t buffer[ATA8510_MAX_PKT_LENGTH];
 
 static const shell_command_t shell_commands[] = {
     { "ifconfig", "Configure netdev2", ifconfig },
@@ -85,11 +95,8 @@ static void _event_cb(netdev2_t *dev, netdev2_event_t event)
     else {
         switch (event) {
             case NETDEV2_EVENT_RX_COMPLETE:
-            {
                 recv(dev);
-
                 break;
-            }
             default:
                 puts("Unexpected event received");
                 break;
@@ -112,104 +119,37 @@ void *_recv_thread(void *arg)
     }
 }
 
+void recv(netdev2_t *dev)
+{
+    size_t data_len;
+    netdev2_ieee802154_rx_info_t rx_info;
+
+    putchar('\n');
+    data_len = dev->driver->recv(dev, buffer, sizeof(buffer), &rx_info);
+    printf("Recv: ");
+    od_hex_dump(buffer, data_len, 0);
+    printf("txt: ");
+    for (int i = 0; i < data_len; i++) {
+        if ((buffer[i] > 0x1F) && (buffer[i] < 0x80)) {
+            putchar((char)buffer[i]);
+        }
+        else {
+            putchar('?');
+        }
+        if ((((i + 1) % (MAX_LINE - sizeof("txt: "))) == 1) && i != 0) {
+            printf("\n     ");
+        }
+    }
+    printf("\n");
+    printf("RSSI: %u, dBm: %u\n\n", rx_info.rssi, rx_info.lqi);
+}
 // ------------------------------------------------------------------------------
 
 
-//#define THREADTX
-//#define THREADRX
-//#define THREADTRX
 //#define THREADRSSIMEAS
 //#define THREADTXRAND
-#define THREADCHECKRXERRORS
-//#define THREADPS5S
+//#define THREADCHECKRXERRORS
 
-
-#ifdef THREADTX
-void *thread_tx(void *arg)
-{
-    (void) arg;
-    ata8510_t *dev = &devs[0]; // acquires the 8510 device handle
-
-    printf("thread tx started, pid: %" PRIkernel_pid "\n", thread_getpid());
-
-    uint32_t last_wakeup = xtimer_now();
-    char msg[32];
-    sprintf(msg, "Yarm RIOT TX2OK!");
-    while (1) {
-        xtimer_periodic_wakeup(&last_wakeup, INTERVALTX);
-		printf("Message sent: %s\n",msg);
-		ata8510_send(dev, (uint8_t *)msg, strlen(msg), 0, 0, IDLE);  // service 0 channel 0
-   }
-    return NULL;
-}
-
-char thread_tx_stack[THREAD_STACKSIZE_MAIN];
-#endif
-
-#ifdef THREADRX
-void *thread_rx(void *arg)
-	{
-	(void) arg;
-	ata8510_t *dev = &devs[0]; // acquires the 8510 device handle
-	int valRSSI=0;
-	int valRSSIdBm=0;
-	uint8_t channel;
-	uint8_t service;
-	uint8_t len;
-	uint8_t Buffer[40];
-
-	printf("thread rx started, pid: %" PRIkernel_pid "\n", thread_getpid());
-
-	uint32_t last_wakeup = xtimer_now();
-	ata8510_SetPollingMode(dev);
-	while (1) {
-		xtimer_periodic_wakeup(&last_wakeup, INTERVALRX);
-
-		if (ata8510_get_message(dev, &len, Buffer, &service, &channel, &valRSSI, &valRSSIdBm) ) {
-			printf("Thread_Rx Message Received: %s\n",Buffer);  // only if ASCII messages
-			printf("  RSSI = %d   dBm = %d  service = %d  channel = %d\n", 
-					valRSSI, valRSSIdBm, service, channel);
-		}
-	}
-	return NULL;
-}
-
-char thread_rx_stack[THREAD_STACKSIZE_MAIN];
-#endif
-
-#ifdef THREADTRX
-void *thread_trx(void *arg)
-{
-	(void) arg;
-	ata8510_t *dev = &devs[0]; // acquires the 8510 device handle
-    char msg[32];
-
-	int valRSSI=0;
-	int valRSSIdBm=0;
-	uint8_t channel;
-	uint8_t service;
-	uint8_t len;
-	uint8_t Buffer[40];
-
-	printf("thread trx started, pid: %" PRIkernel_pid "\n", thread_getpid());
-	uint32_t last_wakeup = xtimer_now();
-
-	ata8510_SetPollingMode(dev);
-	while (1) {
-		xtimer_periodic_wakeup(&last_wakeup, INTERVALRX);
-		if (ata8510_get_message(dev, &len, Buffer, &service, &channel, &valRSSI, &valRSSIdBm) ) {
-			printf("Thread_TRx Message Received: %s\n",Buffer);  // only if ASCII messages
-			printf("  RSSI = %d   dBm = %d  service = %d  channel = %d\n", valRSSI, valRSSIdBm, service, channel);
-			sprintf(msg, "YARM RIOT ACK!");
-			ata8510_send(dev, (uint8_t *)msg, strlen(msg), 0, 1, POLLING);  // transmit on service 0 channel 1. After Tx go in Polling
-			printf("Thread_TRx Message Sent: %s\n\n",msg);
-		}
-	}
-	return NULL;
-}
-
-char thread_trx_stack[THREAD_STACKSIZE_MAIN];
-#endif
 
 #ifdef THREADRSSIMEAS
 void *thread_RSSI_meas(void *arg)
@@ -240,7 +180,7 @@ char thread_RSSI_meas_stack[THREAD_STACKSIZE_MAIN];
 #include "random.h"
 #include "checksum/fletcher16.h"
 #define RAND_SEED 0xC0FFEE
-#define ID8510 3   // used as first character transmitted
+#define ID8510 1   // used as first character transmitted
 
 #define LISTENBEFORETALK
 void *thread_tx_rand(void *arg)     // Still has a problem on the very first message sent: the sniffing is returning zeroes. To be fixed..
@@ -356,8 +296,8 @@ void *thread_check_rx_errors(void *arg)
 	int discard;
     uint8_t mystate8510, mynextstate8510;
 	uint8_t mycount=0;
-	uint8_t data[5];
-	uint16_t errorcode;
+//	uint8_t data[5];
+// 	uint16_t errorcode;
 	uint8_t ramdata;
 	int stops=0;
 		
@@ -484,12 +424,13 @@ void *thread_check_rx_errors(void *arg)
 			} else {
 				printf("     ERROR: wrong YARM TX ID received: %c. Discard Message\n",Buffer[0]);
 			} 				
-		} else {
+    	} else {
 			mystate8510 = ata8510_get_state(dev);
 			mycount++;
 			if (mycount > 41) { // over 4s
 				printf("mycount %d\n",mycount);
 				mycount = 0;
+/*
 				stops++;
 				ata8510_GetEventBytes(dev, data);
 				if (data[0] & 0x80) {
@@ -500,7 +441,7 @@ void *thread_check_rx_errors(void *arg)
 				}
 				printf("Check Ev.St. %02x %02x %02x %02x st8510 %d stops %d\n", 
 						data[0], data[1], data[2], data[3], mystate8510, stops);
-				if (dev->blocked >0 || mycount > 41) {
+				if (dev->blocked >0) {
 					// probably something went wrong. It is not anymore in polling state
 					ata8510_GetEventBytes(dev, data);
 					xtimer_usleep(70);
@@ -509,6 +450,7 @@ void *thread_check_rx_errors(void *arg)
 					ata8510_SetPollingMode(dev);
 					printf("Something wrong: blocked %d Set polling mode\n\n\n\n\n", dev->blocked);
 				}
+*/
 			}
 		}
 	}
@@ -516,24 +458,6 @@ void *thread_check_rx_errors(void *arg)
 }
 
 char thread_check_rx_errors_stack[THREAD_STACKSIZE_MAIN];
-#endif
-
-#ifdef THREADPS5S
-void *thread_ps_every_5s(void *arg)
-	{
-	(void) arg;
-
-	printf("thread ps every 5s started, pid: %" PRIkernel_pid "\n", thread_getpid());
-
-	uint32_t last_wakeup = xtimer_now();
-	while (1) {
-		xtimer_periodic_wakeup(&last_wakeup, 5000000U);
-		ps();
-	}
-	return NULL;
-}
-
-char thread_ps_every_5s_stack[THREAD_STACKSIZE_MAIN];
 #endif
 
 
@@ -551,6 +475,7 @@ int main(void)
         dev->event_callback = _event_cb;
         dev->driver->init(dev);
     }
+	ata8510_t *dev = &devs[0]; // acquires the 8510 device handle
 
     _recv_pid = thread_create(stack, sizeof(stack), THREAD_PRIORITY_MAIN - 1,
                               THREAD_CREATE_STACKTEST, _recv_thread, NULL,
@@ -561,27 +486,9 @@ int main(void)
         return 1;
     }
 
-#ifdef THREADTX
-    printf("[main] Starting tx thread...\n");
-    thread_create(thread_tx_stack, sizeof(thread_tx_stack),
-                            THREAD_PRIORITY_MAIN - 1, THREAD_CREATE_STACKTEST,
-                            thread_tx, NULL, "tx_daemon");
-#endif
-
-#ifdef THREADRX
-    printf("[main] Starting rx thread...\n");
-    thread_create(thread_rx_stack, sizeof(thread_rx_stack),
-                            THREAD_PRIORITY_MAIN - 1, THREAD_CREATE_STACKTEST,
-                            thread_rx, NULL, "rx_daemon");
-#endif
-
-
-#ifdef THREADTRX
-    printf("[main] Starting trx thread...\n");
-    thread_create(thread_trx_stack, sizeof(thread_trx_stack),
-                            THREAD_PRIORITY_MAIN - 1, THREAD_CREATE_STACKTEST,
-                            thread_trx, NULL, "trx_daemon");
-#endif
+	int ramdata = ata8510_read_sram_register(dev, 0x294);
+	printf("0x294 = %02x\n",ramdata);
+	ata8510_SetPollingMode(dev);
 
 #ifdef THREADRSSIMEAS
     printf("[main] Starting RSSI measurement thread...\n");
@@ -604,18 +511,9 @@ int main(void)
                             thread_check_rx_errors, NULL, "check_rx_errors_daemon");
 #endif
 
-#ifdef THREADPS5S
-    printf("[main] Starting ps every 5s thread to look for stack problems...\n");
-    thread_create(thread_ps_every_5s_stack, sizeof(thread_ps_every_5s_stack),
-                            THREAD_PRIORITY_MAIN - 1, THREAD_CREATE_STACKTEST,
-                            thread_ps_every_5s, NULL, "ps_every_5s_daemon");
-#endif
-
-
 #ifdef FEATURE_PERIPH_RTC
     rtc_init();
 #endif
-
 
     /* start the shell */
     puts("Initialization successful - starting the shell now");
