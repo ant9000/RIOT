@@ -221,30 +221,3 @@ uint16_t ata8510_read_error_code(ata8510_t *dev)
 
 	return syserr<<8 | ssmstate;
 }
-
-uint8_t ata8510_get_message(ata8510_t *dev, uint8_t *len, uint8_t *buffer, uint8_t *service, uint8_t *channel, int *rssi, int *dBm){
-	uint8_t i;
-	if (dev->rx_available == 0) return 0;
-
-    for (i=0; i<=dev->rx_len; i++) {  // copies also the 0x00
-        buffer[i] = dev->rx_buffer[i];
-	}
-    *len = dev->rx_len;
-    // calculate RSSI and dBm values
-    *rssi=0;
-    if (dev->RSSI[2] > 0) {
-        for (i=0; i<dev->RSSI[2]; i++) {
-            *rssi+=dev->RSSI[i+3];
-        }
-        *rssi /= dev->RSSI[2];
-        *dBm = (*rssi>>1) - 135;
-        DEBUG(" RSSI values = %d RSSI = %d   dBm = %d\n", dev->RSSI[2], *rssi, *dBm);
-    } else {
-        DEBUG("no RSSI values read\n");
-	}
-    *service = 	dev->rx_service;
-    *channel = 	dev->rx_channel;
-
-    dev->rx_available = 0;
-    return 1;
-}

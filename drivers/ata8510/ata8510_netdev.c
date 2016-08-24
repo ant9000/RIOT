@@ -104,7 +104,52 @@ static int _send(netdev2_t *netdev, const struct iovec *vector, unsigned count)
 
 static int _recv(netdev2_t *netdev, void *buf, size_t len, void *info)
 {
-    return 0;
+    size_t pkt_len;
+    uint8_t i;
+
+    ata8510_t *dev = (ata8510_t *)netdev;
+    if(!dev->rx_available){ return 0; }
+
+    pkt_len = dev->rx_len;
+
+    /* just return length when buf == NULL */
+    if (buf == NULL) {
+        return pkt_len;
+    }
+#ifdef MODULE_NETSTATS_L2
+    netdev->stats.rx_count++;
+    netdev->stats.rx_bytes += pkt_len;
+#endif
+    /* not enough space in buf */
+    if (pkt_len > len) {
+        return -ENOBUFS;
+    }
+
+    /* copy payload */
+    for (i=0; i<pkt_len; i++){ 
+      ((uint8_t *)buf)[i] = dev->rx_buffer[i];
+    }
+	dev->rx_available = 0;
+
+	DEBUG("_recv pkt_len=%d\n", pkt_len);
+
+    if (info != NULL) {
+        netdev2_ieee802154_rx_info_t *radio_info = info;
+        radio_info->lqi=0;
+        radio_info->rssi=0;
+        if (dev->RSSI[2] > 0) {
+            for (i=0; i<dev->RSSI[2]; i++) {
+                radio_info->rssi+=dev->RSSI[i+3];
+            }
+            radio_info->rssi /= dev->RSSI[2];
+            /* we abuse LQI for storing dBm */
+            radio_info->lqi = (radio_info->rssi>>1) - 135;
+            DEBUG(" RSSI values = %d RSSI = %d   dBm = %d\n", dev->RSSI[2], radio_info->rssi, radio_info->lqi);
+        } else {
+            DEBUG("no RSSI values read\n");
+        }
+    }
+    return pkt_len;
 }
 
 static int _get(netdev2_t *netdev, netopt_t opt, void *val, size_t max_len)
@@ -156,29 +201,27 @@ static void _isr(netdev2_t *netdev){
 			DEBUG("_isr State IDLE!\n");
 		break;
 		case TX_ON:
-			switch (data[1]&0x10) {
-				case 0x10:
-				// end of transmission
-					DEBUG("End of Transmission!\n");
-					ata8510_SetIdleMode(dev);
-					xtimer_usleep(70);
-					switch(mynextstate8510) {
-						case IDLE:
-						break;
-						case POLLING:
-							ata8510_SetPollingMode(dev);
-							ata8510_set_state(dev, POLLING);
-						break;
-						default:
-							printf("_isr Cannot handle state 8510 %d after TX \n", mynextstate8510);
-					}
-				break;
-				default: {
-					printf("_isr Unknown events.events %02x [%02x] %02x %02x \n",
-							data[0], data[1], data[2], data[3]);
-					dev->unknown_case++;
-				}
 			DEBUG("_isr State TX_ON!\n");
+			if (data[1]&0x10) {
+				// end of transmission
+				DEBUG("End of Transmission!\n");
+				ata8510_SetIdleMode(dev);
+				xtimer_usleep(70);
+				switch(mynextstate8510) {
+					case IDLE:
+			    		break;
+					case POLLING:
+						ata8510_SetPollingMode(dev);
+						ata8510_set_state(dev, POLLING);
+				   		break;
+					default:
+						printf("_isr Cannot handle state 8510 %d after TX \n", mynextstate8510);
+				   		break;
+				}
+		    }else {
+				printf("_isr Unknown events.events %02x [%02x] %02x %02x \n",
+						data[0], data[1], data[2], data[3]);
+				dev->unknown_case++;
 			}
 		break;
 		case RX_ON:
@@ -196,10 +239,15 @@ static void _isr(netdev2_t *netdev){
 					if (data[1] & 0x10) {  // EOT in Rx. Message complete. We can read
 						dev->rx_service = (data[3] & 0x07);
 						dev->rx_channel = (data[3] & 0x30)>>4;
-						rxlen = ata8510_ReadFillLevelRxFIFO(dev);
-						dev->rx_len = rxlen;
-						ata8510_ReadRxFIFO(dev, rxlen, data);
-						data[rxlen+3]=0x00; // close in any case the message received
+
+                        rxlen = ata8510_ReadFillLevelRxFIFO(dev);
+                        dev->rx_len = rxlen;
+                        ata8510_ReadRxFIFO(dev, rxlen, dev->rx_buffer);
+                        dev->rx_buffer[rxlen+1]=0x00; // close in any case the message received
+                        dev->rx_available = 1;
+                        DEBUG("_isr RxLen %d  8510event %d Data Received: %s\n",
+                            rxlen, dev->interrupts,(char *)&dev->rx_buffer[3]);
+
 						rssilen=ata8510_ReadFillLevelRSSIFIFO(dev);
 						if (rssilen>4) {
 							ata8510_ReadRSSIFIFO(dev, rssilen, dev->RSSI);
@@ -214,12 +262,8 @@ static void _isr(netdev2_t *netdev){
 						ata8510_SetIdleMode(dev);
 						xtimer_usleep(70);
 						ata8510_SetPollingMode(dev);
-						for (i=0; i<rxlen+1; i++) {
-							dev->rx_buffer[i] = data[i+3];  // raw copy of received bytes in ata8510 receive buffer
-						}
-						dev->rx_available = 1;
-						DEBUG("_isr RxLen %d  8510event %d Data Received: %s\n",
-								rxlen, dev->interrupts,(char *)&data[3]);
+
+                        netdev->event_callback(netdev, NETDEV2_EVENT_RX_COMPLETE);
 					}
 					break;
 				case 0x04:

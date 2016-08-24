@@ -586,22 +586,6 @@ void ata8510_tx_exec(ata8510_t *dev, uint8_t service, uint8_t channel);
  */
 uint16_t ata8510_read_error_code(ata8510_t *dev);
 
-
-/**
- * @brief   Consume a received packet if available
- *
- * @param[in]  dev           device to read
- * @param[out] len
- * @param[out] buffer
- * @param[out] service
- * @param[out] channel
- * @param[out] rssi
- * @param[out] dBm
- *
- *  * @return               1 for packet available, 0 otherwise
- */
-uint8_t ata8510_get_message(ata8510_t *dev, uint8_t *len, uint8_t *buffer, uint8_t *service, uint8_t *channel, int *rssi, int *dBm);
-
 #ifdef __cplusplus
 }
 #endif
