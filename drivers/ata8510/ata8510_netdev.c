@@ -33,7 +33,7 @@
 #include "ata8510_internal.h"
 #include "xtimer.h"
 
-#define ENABLE_DEBUG (1)
+#define ENABLE_DEBUG (0)
 #include "debug.h"
 
 #define _MAX_MHR_OVERHEAD   (25)
@@ -106,6 +106,7 @@ static int _recv(netdev2_t *netdev, void *buf, size_t len, void *info)
 {
     size_t pkt_len;
     uint8_t i;
+	int rssicalc;
 
     ata8510_t *dev = (ata8510_t *)netdev;
 
@@ -138,16 +139,18 @@ static int _recv(netdev2_t *netdev, void *buf, size_t len, void *info)
 
     if (info != NULL) {
         netdev2_ieee802154_rx_info_t *radio_info = info;
+		// ROB radio_info contains 2 x 1 byte of info. Not possible to use them for making average RSSI or storing dBm that is always negative.
         radio_info->lqi=0;
         radio_info->rssi=0;
-        if (dev->RSSI[2] > 0) {
-            for (i=0; i<dev->RSSI[2]; i++) {
-                radio_info->rssi+=dev->RSSI[i+3];
+        rssicalc=0;
+        if (dev->RSSI[2] > 1) {
+			// TO BE CHECKED: first value of RSSI is always zero. Why?
+            for (i=0; i<dev->RSSI[2]-1; i++) {
+                rssicalc+=dev->RSSI[i+4];
             }
-            radio_info->rssi /= dev->RSSI[2];
-            /* we abuse LQI for storing dBm */
-            radio_info->lqi = (radio_info->rssi>>1) - 135;
-            DEBUG(" RSSI values = %d RSSI = %d   dBm = %d\n", dev->RSSI[2], radio_info->rssi, radio_info->lqi);
+            radio_info->rssi = rssicalc/(dev->RSSI[2]-1);
+            /* we abuse LQI for storing dBm */  // <- Not possible! dBm always negative better have a function to calulate it only when you need
+            DEBUG(" RSSI values = %d RSSI = %d \n", dev->RSSI[2], radio_info->rssi);
         } else {
             DEBUG("no RSSI values read\n");
         }
@@ -253,21 +256,24 @@ static void _isr(netdev2_t *netdev){
                         ata8510_ReadRxFIFO(dev, rxlen, dev->rx_buffer);
                         dev->rx_buffer[rxlen+1]=0x00; // close in any case the message received
                         dev->rx_available = 1;
-                        DEBUG("_isr RxLen %d  8510event %d Data Received: %s\n",
-                            rxlen, dev->interrupts,(char *)&dev->rx_buffer[3]);
 
-                        // TODO: shouldn't RSSI be handled separately?
+                        // TODO: shouldn't RSSI be handled separately? (ROB: I think not since when you are reading the message it has to be read also the 
+																		//strength of signal and linked to the message.)
 						rssilen=ata8510_ReadFillLevelRSSIFIFO(dev);
+						DEBUG("rssilen = %d; rssidata: ", rssilen);
 						if (rssilen>4) {
 							ata8510_ReadRSSIFIFO(dev, rssilen, dev->RSSI);
 							dev->RSSI[2]=rssilen; // uses the dummy location to save the length of the RSSI buffer.
+							for (i=2; i< 10; i++) DEBUG(" %d", dev->RSSI[i]);
 						} else {
 							// if interrupt SFIFO has emptied the SFIFO get from dataSFIFO some RSSI values
 							for (i=3; i< 10; i++)	dev->RSSI[i] = dataSFIFO[i];
 							dev->RSSI[2] = 7;
-							for (i=3; i< 10; i++) printf(" %d", dataSFIFO[i]);
-							DEBUG("--\n");
+							for (i=3; i< 10; i++) DEBUG(".%d", dataSFIFO[i]);
 						}
+						DEBUG("--\n");
+                        DEBUG("_isr RxLen %d  8510event %d Data Received: %s\n",
+                            rxlen, dev->interrupts,(char *)&dev->rx_buffer[3]);
 
                         // TODO: is this really needed?
 						ata8510_SetIdleMode(dev);

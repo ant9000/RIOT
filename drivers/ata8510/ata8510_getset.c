@@ -128,10 +128,12 @@ uint8_t ata8510_ReadFillLevelRSSIFIFO(ata8510_t *dev){
 void ata8510_GetEventBytes(ata8510_t *dev, uint8_t *data){
 	uint8_t command[4]={ATA8510_CMD_GETCONFIGEVENTBYTE,0x00,0x00,0x00};
 	ata8510_send_cmd(dev, command, data, sizeof(command));
+/*  // if enabled the following DEBUG print it will delay too much the reading of the DFIFO buffer. Use only in case of real need and disable immediately after 
 	DEBUG(
 		"[ata8510] Get Event Bytes: [0x%02x 0x%02x 0x%02x 0x%02x]\n",
 		data[0], data[1], data[2], data[3]
 	);
+*/
 }
 
 void ata8510_ReadRSSIFIFO(ata8510_t *dev, uint8_t len, uint8_t *data){
@@ -144,6 +146,10 @@ void ata8510_ReadRSSIFIFO(ata8510_t *dev, uint8_t len, uint8_t *data){
 		data[0], data[1], data[2], data[3], data[4], data[5], data[6], data[7], data[8], data[9], 
 		data[10], data[11], data[12], data[13], data[14], data[15], data[16], data[17], data[18]
 	);
+}
+
+int ata8510_calc_dbm(uint8_t rssi) {
+	return ( (rssi>>1) - 135 );
 }
 
 void ata8510_ReadRxFIFO(ata8510_t *dev, uint8_t len, uint8_t *data){
@@ -165,7 +171,7 @@ void ata8510_write_sram_register(ata8510_t *dev, uint16_t addr, uint8_t data){
 	uint8_t dummy[5]={0,0,0,0,0};
 
 	ata8510_send_cmd(dev, command, dummy, 5);
-	DEBUG("[ata8510] Write SRAM / Register: addr = 0x%04x : ", addr,	command[4]);
+	DEBUG("[ata8510] Write SRAM / Register: addr = 0x%04x data = 0x%02x\n: ", addr,	(int)command[4]);
 }
 
 uint8_t ata8510_read_sram_register(ata8510_t *dev, uint16_t addr){
@@ -175,7 +181,7 @@ uint8_t ata8510_read_sram_register(ata8510_t *dev, uint16_t addr){
 	uint8_t command[6]={ATA8510_CMD_READSRAM,1,addrh,addrl,0x00,0x00};
 	uint8_t data[6]={0,0,0,0,0,0};
 	ata8510_send_cmd(dev, command, data, 6);
-	DEBUG("[ata8510] Read SRAM / Register: addr = 0x%04x : 0x%02x or %dd\n", addr, data[5]);
+	DEBUG("[ata8510] Read SRAM / Register: addr = 0x%04x : 0x%02x or %dd\n", addr, data[5], (int)data[5]);
 	return data[5];
 }
 

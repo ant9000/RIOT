@@ -141,7 +141,7 @@ void recv(netdev2_t *dev)
         }
     }
     printf("\n");
-    printf("RSSI: %u, dBm: %u\n\n", rx_info.rssi, rx_info.lqi);
+    printf("RSSI: %u, dBm: %d\n\n", rx_info.rssi, ata8510_calc_dbm(rx_info.rssi));
 }
 // ------------------------------------------------------------------------------
 

@@ -249,6 +249,15 @@ uint8_t ata8510_ReadFillLevelRSSIFIFO(ata8510_t *dev);
 void ata8510_ReadRSSIFIFO(ata8510_t *dev, uint8_t len, uint8_t *data);
 
 /**
+ * @brief   translate RSSI in dBM for 8510 at 868 MHz
+ *
+ * @param[in] rssi           strength of signal received in rssi units
+ *
+ * @return                  strength of signal received in dBm units
+ */
+int ata8510_calc_dbm(uint8_t rssi);
+
+/**
  * @brief   Read device event 4 bytes
  *
  * @param[in] dev           device to read from
