@@ -162,8 +162,11 @@ size_t ata8510_send(ata8510_t *dev, uint8_t *data, size_t len, uint8_t service, 
 {
 	ata8510_SetIdleMode(dev);
 	ata8510_set_state(dev, IDLE);
-	DEBUG("ata8510_SetIdleMode\n\r");
-	DEBUG("-------- Transmission request\r\n");
+#if ENABLE_DEBUG
+	DEBUG("ata8510_send(\n\tlen=%d\n\tdata=[", len);
+    for(int i=0;i<len;i++){ DEBUG(" 0x%02x", data[i]); }
+    DEBUG(" ]\n\tservice=%d, channel=%d, next state=%d)\n", service, channel, state_after_tx);
+#endif
 	// check for 32 bytes max transmission (for now)!
 	if (len>32) len = 32; // truncation in case
 
@@ -197,10 +200,9 @@ void ata8510_tx_prepare(ata8510_t *dev)
 size_t ata8510_tx_load(ata8510_t *dev, uint8_t *data,
                          size_t len, size_t offset)
 {
-	ata8510_WriteTxFifo(dev, strlen((char *)data), data);
+	ata8510_WriteTxFifo(dev, len, data);
 	DEBUG("ata8510_WriteTxFifo\n\r");
-   
-	return 0;
+	return len;
 }
 
 void ata8510_tx_exec(ata8510_t *dev, uint8_t service, uint8_t channel)

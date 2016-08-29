@@ -25,6 +25,8 @@
 #include "ata8510_internal.h"
 #include "ata8510_params.h"
 
+#define ENABLE_DEBUG (1)
+#include "debug.h"
 
 int ata8510_send_cmd(const ata8510_t *dev,
                           const uint8_t *tx_buffer,
@@ -112,10 +114,21 @@ int ata8510_WriteTxPreamble(ata8510_t *dev, uint8_t data_size, uint8_t *data)
 int ata8510_WriteTxFifo(ata8510_t *dev, uint8_t data_size, uint8_t *data)
 {
 	int ret;
-	uint8_t command[35]={ATA8510_CMD_WRITETXFIFO, data_size};
-	uint8_t dummy[35];
+	uint8_t command[34]={
+        ATA8510_CMD_WRITETXFIFO,data_size,
+        0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,
+        0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,
+        0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,
+        0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,
+    };
+	uint8_t dummy[34];
 	uint8_t index;
 
+#if ENABLE_DEBUG
+	DEBUG("ata8510_WriteTxFifo(\n\tdata_size=%d\n\tdata=[", data_size);
+    for(int i=0;i<data_size;i++){ DEBUG(" 0x%02x", data[i]); }
+    DEBUG(" ])\n");
+#endif
 	if (data_size<=32) {
 		for (index=0; index <data_size; index++)
 		{

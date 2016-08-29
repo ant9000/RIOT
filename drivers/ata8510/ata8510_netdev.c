@@ -181,7 +181,7 @@ static void _isr(netdev2_t *netdev){
     uint8_t saved8510status[4];
     uint8_t dataSFIFO[19];
     uint8_t mystate8510, mynextstate8510;
-	uint8_t rxlen, rssilen, sfifolen = 0;;
+	uint8_t rssilen, sfifolen = 0;;
 	uint8_t i;
 #if ENABLE_DEBUG
     uint16_t errorcode;
@@ -251,16 +251,21 @@ static void _isr(netdev2_t *netdev){
 						dev->rx_channel = (data[3] & 0x30)>>4;
 
                         // TODO: avoid races when accessing dev->rx_*
-                        rxlen = ata8510_ReadFillLevelRxFIFO(dev);
-                        dev->rx_len = rxlen;
-                        ata8510_ReadRxFIFO(dev, rxlen, dev->rx_buffer);
-                        dev->rx_buffer[rxlen+1]=0x00; // close in any case the message received
+                        dev->rx_len = ata8510_ReadFillLevelRxFIFO(dev);
+                        ata8510_ReadRxFIFO(dev, dev->rx_len, data);
+                        for(i=0;i<dev->rx_len;i++){ dev->rx_buffer[i]=data[i+3]; }
                         dev->rx_available = 1;
+#if ENABLE_DEBUG
+						DEBUG("--\n");
+                        DEBUG("_isr 8510event %d RxLen %d Data Received: ", dev->interrupts, dev->rx_len);
+                        for(i=0;i<dev->rx_len;i++){ DEBUG(" 0x%02x", dev->rx_buffer[i]); }
+						DEBUG("\n");
+#endif
 
                         // TODO: shouldn't RSSI be handled separately? (ROB: I think not since when you are reading the message it has to be read also the 
 																		//strength of signal and linked to the message.)
 						rssilen=ata8510_ReadFillLevelRSSIFIFO(dev);
-						DEBUG("rssilen = %d; rssidata: ", rssilen);
+						DEBUG("   rssilen = %d; rssidata: ", rssilen);
 						if (rssilen>4) {
 							ata8510_ReadRSSIFIFO(dev, rssilen, dev->RSSI);
 							dev->RSSI[2]=rssilen; // uses the dummy location to save the length of the RSSI buffer.
@@ -271,10 +276,6 @@ static void _isr(netdev2_t *netdev){
 							dev->RSSI[2] = 7;
 							for (i=3; i< 10; i++) DEBUG(".%d", dataSFIFO[i]);
 						}
-						DEBUG("--\n");
-                        DEBUG("_isr RxLen %d  8510event %d Data Received: %s\n",
-                            rxlen, dev->interrupts,(char *)&dev->rx_buffer[3]);
-
                         // TODO: is this really needed?
 						ata8510_SetIdleMode(dev);
 						xtimer_usleep(70);
