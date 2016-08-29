@@ -144,7 +144,18 @@ void ata8510_reset(ata8510_t *dev)
 
 bool ata8510_cca(ata8510_t *dev)
 {
-    return false;
+    uint8_t data[4]={0,0,0,0};
+    bool channel_clear;
+
+    ata8510_write_sram_register(dev, 0x294, 0x27);  // set RSSI polling to 9 (6.8ms) to enable fast sniffing
+    ata8510_StartRSSI_Measurement(dev, 0, 0);       // start RSSI measure; 0,0 are service and channel
+    xtimer_usleep(6000);
+    ata8510_GetRSSI_Value(dev, data);
+    ata8510_write_sram_register(dev, 0x294, 0x2b);  // set RSSI polling back to 11 (27.1ms) to avoid SFIFO
+                                                    // interrupts (for transmissions up to 380ms)
+    channel_clear = (data[2] <= 50);
+    DEBUG("ata8510_cca: channel %s\n", channel_clear ? "clear" : "busy");
+    return channel_clear;
 }
 
 size_t ata8510_send(ata8510_t *dev, uint8_t *data, size_t len, uint8_t service, uint8_t channel, ata8510_state_t state_after_tx)

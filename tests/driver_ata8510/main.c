@@ -182,7 +182,6 @@ char thread_RSSI_meas_stack[THREAD_STACKSIZE_MAIN];
 #define RAND_SEED 0xC0FFEE
 #define ID8510 1   // used as first character transmitted
 
-#define LISTENBEFORETALK
 void *thread_tx_rand(void *arg)     // Still has a problem on the very first message sent: the sniffing is returning zeroes. To be fixed..
 {
 	// Transmit  a message every .... seconds where first byte is ID8510, then 6 bytes as counter of transmissions sent.
@@ -194,6 +193,8 @@ void *thread_tx_rand(void *arg)     // Still has a problem on the very first mes
     uint32_t time_between_tx;
 	uint8_t checksum;
     uint32_t last_wakeup = xtimer_now();
+	uint8_t myturn;
+	uint8_t i;
 
     printf("thread tx rand, pid: %" PRIkernel_pid "\n", thread_getpid());
 	random_init(RAND_SEED);
@@ -219,41 +220,23 @@ void *thread_tx_rand(void *arg)     // Still has a problem on the very first mes
 		checksum = fletcher16((const uint8_t*)msg2, strlen(msg));
 		sprintf(msg,"%s%02x",msg2, checksum);
 
-#ifdef LISTENBEFORETALK
-		uint8_t myturn;
-		uint8_t i;
-		uint8_t data[4]={0,0,0,0};
-
-
 		// test listen before talk
-		ata8510_write_sram_register(dev, 0x294, 0x27);  // set RSSI polling to 9 (6.8ms) to enable fast sniffing
-
 		do {		
-			do {
-				// first loop of sensing
-				ata8510_StartRSSI_Measurement(dev, 0, 0);  // 0,0 are service and channel
-				xtimer_usleep(6000);
-				ata8510_GetRSSI_Value(dev, data);
-//				printf("RSSI = %d\n",data[2]);
-			} while (data[2] > 50 ); // exits when the present transmission by others ends.
+			while (!ata8510_cca(dev)) {
+				xtimer_usleep(100);
+			}
 			myturn = 1;
 //			xtimer_usleep(20000);
 			// after the end of other transmission, sense channel for a random number of times + 2 
 			// if someone else took control, restart waiting with first loop, otherwise start transmit 
 			for (i=0; i<(((random_uint32() % 10)+2)*2); i++) {
-				ata8510_StartRSSI_Measurement(dev, 0, 0);
-				xtimer_usleep(6000);
-				ata8510_GetRSSI_Value(dev, data);
-
-//				printf("   RSSI = %d\n",data[2]);
-				if (data[2] > 50) { // if sensing channel occupied abort second loop and restart first loop of sensing
+			    if (!ata8510_cca(dev)) { // if sensing channel occupied abort second loop and restart first loop of sensing
 					myturn = 0;
 					break;
 				}
 			}
 		} while (myturn == 0);
-#endif
-		ata8510_write_sram_register(dev, 0x294, 0x2b);  // set RSSI polling back to 11 (27.1ms) to avoid SFIFO 															// interrupts (for transmissions up to 380ms)
+
 		ata8510_send(dev, (uint8_t *)msg, strlen(msg), 0, 0, IDLE);  // service 0 channel 0 go to idle mode after Tx
 		time_between_tx = 1000000U + (random_uint32() % 3000000 ); // between 1 and 4 s
 		last_wakeup = xtimer_now();
