@@ -349,7 +349,7 @@ void *thread_check_rx_errors(void *arg)
             perc_error_decimal = 10000*tot_errors/tot_messages - 100*perc_error_integer;
 
             // the print of Time(s) still is not working well after 4295s
-            printf("\nTime(s) %d Msgs: %d Restarts: %d SysErrs %d Errors: %d %%Error: %d.%02d%%\n",
+            printf("\nTime(s) %d Msgs: %d Restarts: %d SysErrs %d Errors: %d %%Error: %d.%02d%%\n\n",
                 time_elapsed + overflows_time*4295, tot_messages, tot_restarts, dev->sys_errors,
                 tot_errors, perc_error_integer, perc_error_decimal);
         }
