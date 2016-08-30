@@ -141,6 +141,7 @@ void ata8510_reset(ata8510_t *dev)
 
     dev->service = 0;
     dev->channel = 0;
+    dev->idle_state = IDLE;
 
     DEBUG("ata8510_reset(): reset complete.\n");
 }
@@ -164,7 +165,6 @@ bool ata8510_cca(ata8510_t *dev)
 size_t ata8510_send(ata8510_t *dev, uint8_t *data, size_t len, uint8_t service, uint8_t channel, ata8510_state_t state_after_tx)
 {
 	ata8510_SetIdleMode(dev);
-	ata8510_set_state(dev, IDLE);
 #if ENABLE_DEBUG
 	DEBUG("ata8510_send(\n\tlen=%d\n\tdata=[", len);
     for(int i=0;i<len;i++){ DEBUG(" 0x%02x", data[i]); }
@@ -178,7 +178,6 @@ size_t ata8510_send(ata8510_t *dev, uint8_t *data, size_t len, uint8_t service, 
     dev->service = service;
     dev->channel = channel;
 	ata8510_tx_exec(dev);
-	ata8510_set_state(dev, TX_ON);
 	ata8510_set_state_after_tx(dev, state_after_tx);
 
     return 0;
@@ -233,6 +232,7 @@ void ata8510_tx_exec(ata8510_t *dev)
 		DEBUG("tx_exec: Channel not permitted %d\n",dev->channel);
 		return;
 	}
+	ata8510_set_state(dev, TX_ON);
 	ata8510_SetSystemMode(dev, ATA8510_RF_TXMODE, modeTx);
 	DEBUG("ata8510_SetSystemMode TXMode. modeTx = %02x\n",modeTx);
 }

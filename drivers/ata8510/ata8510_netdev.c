@@ -107,6 +107,12 @@ static int _send(netdev2_t *netdev, const struct iovec *vector, unsigned count)
     uint8_t data[37];
     int n;
 
+    if (dev->pending_tx) {
+        DEBUG("[ata8510] error: pending transmissiong\n");
+        return -EOVERFLOW;
+    }
+    dev->pending_tx = 1;
+
     ata8510_tx_prepare(dev);
 
     /* load packet data into buffer */
@@ -235,7 +241,7 @@ static void _isr(netdev2_t *netdev){
 	mynextstate8510 = ata8510_get_state_after_tx(dev);
 
 	if (status[ATA8510_EVENTS] & ATA8510_EVENTS_SOTA) {
-DEBUG("_isr: SOTA, state=%d", mystate8510);
+DEBUG("_isr: SOTA, state=%d\n", mystate8510);
 	    switch (mystate8510) {
 		    case POLLING:
                 if (dev->rx_rb.avail>0) {
@@ -250,26 +256,24 @@ DEBUG("_isr: SOTA, state=%d", mystate8510);
     }
 
 	if (status[ATA8510_EVENTS] & ATA8510_EVENTS_EOTA) {
-DEBUG("_isr: EOTA, state=%d", mystate8510);
+DEBUG("_isr: EOTA, state=%d\n", mystate8510);
 	    switch (mystate8510) {
             case TX_ON:
-                // end of transmission
-                DEBUG("End of Transmission!\n");
-                
+                dev->pending_tx = 0;
+
                 // empty TX buffer
                 ringbuffer_remove(&dev->tx_rb, dev->tx_rb.avail);
 
                 ata8510_SetIdleMode(dev);
                 xtimer_usleep(70);
-                switch(mynextstate8510) {
+                switch (mynextstate8510) {
                     case IDLE:
                         break;
                     case POLLING:
                          ata8510_SetPollingMode(dev);
-                         ata8510_set_state(dev, POLLING);
                          break;
                     default:
-                         printf("_isr Cannot handle state 8510 %d after TX \n", mynextstate8510);
+                         printf("_isr: Cannot handle state 8510 %d after TX\n", mynextstate8510);
                          break;
                 }
                 break;
@@ -282,7 +286,7 @@ DEBUG("_isr: EOTA, state=%d", mystate8510);
                     ata8510_ReadRxFIFO(dev, n, data);
                     i = ringbuffer_add(&dev->rx_rb, (char *)data+3, n);
                     if (i != n){
-                        DEBUG("_isr rx buffer overflow");
+                        DEBUG("_isr: rx buffer overflow\n");
                     }
                 }
 
@@ -304,10 +308,12 @@ DEBUG("_isr: EOTA, state=%d", mystate8510);
                     for (i=3; i< 10; i++) DEBUG(".%d", dataSFIFO[i]);
                 }
 
+/*
                 // TODO: is this really needed?
                 ata8510_SetIdleMode(dev);
                 xtimer_usleep(70);
                 ata8510_SetPollingMode(dev);
+*/
 
                 netdev->event_callback(netdev, NETDEV2_EVENT_RX_COMPLETE);
                 break;
@@ -323,7 +329,7 @@ DEBUG("_isr: EOTA, state=%d", mystate8510);
 
     // FIFO events
 	if (status[ATA8510_SYSTEM] & ATA8510_SYSTEM_SFIFO) {
-DEBUG("_isr: SFIFO, state=%d", mystate8510);
+DEBUG("_isr: SFIFO, state=%d\n", mystate8510);
 		// SFIFO event. In any case read the SFIFO
 		sfifolen=ata8510_ReadFillLevelRSSIFIFO(dev);
 //      DEBUG("_isr rssilen = %d\n",(int)sfifolen);
@@ -339,7 +345,7 @@ DEBUG("_isr: SFIFO, state=%d", mystate8510);
     }
 
 	if (status[ATA8510_SYSTEM] & ATA8510_SYSTEM_DFIFO_RX) {
-DEBUG("_isr: DFIFO_RX, state=%d", mystate8510);
+DEBUG("_isr: DFIFO_RX, state=%d\n", mystate8510);
 		// DFIFO event, RX
         n = ata8510_ReadFillLevelRxFIFO(dev);
         if (n>0) { // there is data to read
@@ -352,7 +358,7 @@ DEBUG("_isr: DFIFO_RX, state=%d", mystate8510);
 	}
 
 	if (status[ATA8510_SYSTEM] & ATA8510_SYSTEM_DFIFO_TX) {
-DEBUG("_isr: DFIFO_TX, state=%d", mystate8510);
+DEBUG("_isr: DFIFO_TX, state=%d\n", mystate8510);
 		// DFIFO event, TX
         n = ata8510_ReadFillLevelTxFIFO(dev);
         if (n < ATA8510_DFIFO_TX_LENGTH) { // there is free space in DFIFO_TX
