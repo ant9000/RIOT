@@ -139,6 +139,9 @@ void ata8510_reset(ata8510_t *dev)
 //    /* go into RX state */
 //    ata8510_set_state(dev, ATA8510_STATE_RX_AACK_ON);
 
+    dev->service = 0;
+    dev->channel = 0;
+
     DEBUG("ata8510_reset(): reset complete.\n");
 }
 
@@ -172,7 +175,9 @@ size_t ata8510_send(ata8510_t *dev, uint8_t *data, size_t len, uint8_t service, 
 
 	ata8510_tx_prepare(dev);
 	ata8510_tx_load(dev, data, len, 0);
-	ata8510_tx_exec(dev, service, channel);
+    dev->service = service;
+    dev->channel = channel;
+	ata8510_tx_exec(dev);
 	ata8510_set_state(dev, TX_ON);
 	ata8510_set_state_after_tx(dev, state_after_tx);
 
@@ -185,6 +190,7 @@ void ata8510_tx_prepare(ata8510_t *dev)
 	uint8_t mydataRSSI[19], myrssilen;
 	uint8_t i;
 
+    // flush RSSI FIFO
 	myrssilen=ata8510_ReadFillLevelRSSIFIFO(dev);
 	DEBUG("tx_prepare: rssilen = %d\n",(int)myrssilen);
 	if (myrssilen>0) {
@@ -193,35 +199,42 @@ void ata8510_tx_prepare(ata8510_t *dev)
 	}
 	DEBUG("\n");
 
+    // write TX preamble 
 	ata8510_WriteTxPreamble(dev, ATA8510_WriteTxPreambleBuffer_LEN, &TxPreambleBuffer[0]);
-	DEBUG("ata8510_WriteTxPreamble");
+	DEBUG("ata8510_WriteTxPreamble\n");
+
+    // empty TX buffer
+    ringbuffer_remove(&dev->tx_rb,dev->tx_rb.avail);
 }
 
 size_t ata8510_tx_load(ata8510_t *dev, uint8_t *data,
                          size_t len, size_t offset)
 {
-	ata8510_WriteTxFifo(dev, len, data);
-	DEBUG("ata8510_WriteTxFifo\n\r");
-	return len;
+    size_t n;
+    n = ringbuffer_add(&dev->tx_rb, (char *)data, len);
+    if (n != len){
+	    DEBUG("ata8510_tx_load: tx buffer overflow\n");
+    }
+	return offset + n;
 }
 
-void ata8510_tx_exec(ata8510_t *dev, uint8_t service, uint8_t channel)
+void ata8510_tx_exec(ata8510_t *dev)
 {
 	uint8_t modeTx;
-	if (service <= 2) {
-		modeTx = service;
+	if (dev->service <= 2) {
+		modeTx = dev->service;
 	} else {
-		DEBUG("tx_exec: Service not permitted %d\n",service);
+		DEBUG("tx_exec: Service not permitted %d\n",dev->service);
 		return;
 	}
-	if (channel<=2) {
-		modeTx |= ( (channel<<4) + 0x40);
+	if (dev->channel<=2) {
+		modeTx |= ( (dev->channel<<4) + 0x40);
 	} else {
-		DEBUG("tx_exec: Channel not permitted %d\n",service);
+		DEBUG("tx_exec: Channel not permitted %d\n",dev->channel);
 		return;
 	}
 	ata8510_SetSystemMode(dev, ATA8510_RF_TXMODE, modeTx);
-	DEBUG("ata8510_SetSystemMode TXMode. modeTx = %02x\n\r",modeTx);
+	DEBUG("ata8510_SetSystemMode TXMode. modeTx = %02x\n",modeTx);
 }
 
 uint16_t ata8510_read_error_code(ata8510_t *dev)

@@ -249,6 +249,7 @@ void *thread_tx_rand(void *arg)     // Still has a problem on the very first mes
     uint32_t last_wakeup = xtimer_now();
     uint8_t myturn;
     uint8_t i;
+    struct iovec vector[1];
 
     printf("thread tx rand, pid: %" PRIkernel_pid "\n", thread_getpid());
     random_init(RAND_SEED);
@@ -256,17 +257,6 @@ void *thread_tx_rand(void *arg)     // Still has a problem on the very first mes
     time_between_tx = 1000000U;
     while (1) {
         xtimer_periodic_wakeup(&last_wakeup, time_between_tx);
-        printf("state: %d\n", ata8510_get_state(dev));
-
-        // test if previous transmission has ended well. (now it should not be needed anymore...)
-        // This block was useful where there were still SFIFO problems now solved.
-        if (ata8510_get_state(dev) != IDLE) {    //    dirty way to reenable a blocked 8510.
-                                                // To be investigated in the CB the error
-                                                //    codes in RAM when bit 0x80 of data[0] status is set.
-            ata8510_SetIdleMode(dev);  // stay in idle mode
-            numtx--; // to repeat transmission of faulty tx msg
-            xtimer_usleep(70); // let the 8510 exec the command before issuing another one.
-        }
 
         numtx++;
         sprintf(msg2, "%d%06d_", ID8510, numtx);
@@ -280,7 +270,6 @@ void *thread_tx_rand(void *arg)     // Still has a problem on the very first mes
                 xtimer_usleep(100);
             }
             myturn = 1;
-//            xtimer_usleep(20000);
             // after the end of other transmission, sense channel for a random number of times + 2
             // if someone else took control, restart waiting with first loop, otherwise start transmit
             for (i=0; i<(((random_uint32() % 10)+2)*2); i++) {
@@ -291,7 +280,14 @@ void *thread_tx_rand(void *arg)     // Still has a problem on the very first mes
             }
         } while (myturn == 0);
 
+/*
         ata8510_send(dev, (uint8_t *)msg, strlen(msg), 0, 0, IDLE);  // service 0 channel 0 go to idle mode after Tx
+        (void)vector;
+*/
+        vector[0].iov_base = msg;
+        vector[0].iov_len = strlen(msg);
+        ((netdev2_t *)dev)->driver->send((netdev2_t *)dev, vector, 1);
+
         time_between_tx = 1000000U + (random_uint32() % 3000000 ); // between 1 and 4 s
         last_wakeup = xtimer_now();
    }

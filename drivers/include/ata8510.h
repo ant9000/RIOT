@@ -25,6 +25,7 @@
 #define ATA8510_H_
 
 #include <stdint.h>
+#include "ringbuffer.h"
 
 #include "board.h"
 #include "periph/spi.h"
@@ -40,8 +41,10 @@ extern "C" {
 /**
  * @brief   Maximum possible packet size in byte
  */
-#define ATA8510_MAX_PKT_LENGTH        (32)
-
+#define ATA8510_MAX_PKT_LENGTH  (128)
+#define ATA8510_DFIFO_TX_LENGTH (32)
+#define ATA8510_DFIFO_RX_LENGTH (32)
+#define ATA8510_SFIFO_LENGTH    (16)
 /**
  * @brief   Default addresses used if the CPUID module is not present
  * @{
@@ -82,17 +85,17 @@ typedef struct {
      */
     ata8510_params_t params;              /**< parameters for initialization */
     uint8_t state;                          /**< current state of the radio */
-    uint8_t tx_frame_len;                   /**< length of the current TX frame */
     uint8_t idle_state;                     /**< state to return to after sending */
     uint8_t pending_tx;                     /**< keep track of pending TX calls
                                                  this is required to know when to
                                                  return to @ref ata8510_t::idle_state */
     /* TODO: find a better way */
-    uint8_t rx_buffer[40];
-    uint8_t rx_len;
-    uint8_t rx_available;
-    uint8_t rx_service;
-    uint8_t rx_channel;
+    uint8_t tx_mem[ATA8510_MAX_PKT_LENGTH];
+    uint8_t rx_mem[ATA8510_MAX_PKT_LENGTH];
+    ringbuffer_t tx_rb;
+    ringbuffer_t rx_rb;
+    uint8_t service;
+    uint8_t channel;
     uint8_t RSSI[19];
     int interrupts;
     int sys_errors; 
@@ -572,7 +575,6 @@ void ata8510_tx_prepare(ata8510_t *dev);
  * @param[in] dev           device to write data to
  * @param[in] data          buffer containing the data to load
  * @param[in] len           number of bytes in @p buffer
- * @param[in] offset        offset used when writing data to internal buffer
  *
  * @return                  offset + number of bytes written
  */
@@ -584,7 +586,7 @@ size_t ata8510_tx_load(ata8510_t *dev, uint8_t *data, size_t len,
  *
  * @param[in] dev           device to trigger
  */
-void ata8510_tx_exec(ata8510_t *dev, uint8_t service, uint8_t channel);
+void ata8510_tx_exec(ata8510_t *dev);
 
 /**
  * @brief   Read Error Code (to be used after a SYS_ERR set bit in first byte of events.system)
