@@ -30,6 +30,32 @@ extern "C" {
  */
 extern const netdev2_driver_t ata8510_driver;
 
+#define ATA8510_SYSTEM  0
+#define ATA8510_EVENTS  1
+#define ATA8510_POWER   2
+#define ATA8510_CONFIG  3
+
+#define ATA8510_SYSTEM_SYS_ERR      0x80
+#define ATA8510_SYSTEM_CMD_RDY      0x40
+#define ATA8510_SYSTEM_SYS_RDY      0x20
+#define ATA8510_SYSTEM_AVCCLOW      0x10
+#define ATA8510_SYSTEM_LOWBATT      0x08
+#define ATA8510_SYSTEM_SFIFO        0x04
+#define ATA8510_SYSTEM_DFIFO_RX     0x02
+#define ATA8510_SYSTEM_DFIFO_TX     0x01
+
+#define ATA8510_EVENTS_IDCHKA       0x80
+#define ATA8510_EVENTS_WCOKA        0x40
+#define ATA8510_EVENTS_SOTA         0x20
+#define ATA8510_EVENTS_EOTA         0x10
+#define ATA8510_EVENTS_IDCHKB       0x08
+#define ATA8510_EVENTS_WCOKB        0x04
+#define ATA8510_EVENTS_SOTB         0x02
+#define ATA8510_EVENTS_EOTB         0x01
+
+#define ATA8510_CONFIG_SERVICE(x)   ((x) & 0x07)
+#define ATA8510_CONFIG_CHANNEL(x)   (((x) & 0x30)>>4)
+
 #ifdef __cplusplus
 }
 #endif

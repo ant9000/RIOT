@@ -190,7 +190,7 @@ static void _isr(netdev2_t *netdev){
     ata8510_t *dev = (ata8510_t *)netdev;
 	dev->interrupts++;
 	ata8510_GetEventBytes(dev, data);
-	if (data[0] & 0x80) {
+	if (data[ATA8510_SYSTEM] & ATA8510_SYSTEM_SYS_ERR) {
 		// SYS_ERR happened
 #if ENABLE_DEBUG
 		errorcode = ata8510_read_error_code(dev);
@@ -212,7 +212,7 @@ static void _isr(netdev2_t *netdev){
 		break;
 		case TX_ON:
 			DEBUG("_isr State TX_ON!\n");
-			if (data[1]&0x10) {
+			if (data[ATA8510_EVENTS] & ATA8510_EVENTS_EOTA) {
 				// end of transmission
 				DEBUG("End of Transmission!\n");
 				ata8510_SetIdleMode(dev);
@@ -238,7 +238,7 @@ static void _isr(netdev2_t *netdev){
 			DEBUG("_isr State RX_ON!\n");
 		break;
 		case POLLING:
-			switch (data[0]) {
+			switch (data[ATA8510_SYSTEM]) {
 				case 0x00:
 				case 0x02:
 				case 0x22:
@@ -246,9 +246,9 @@ static void _isr(netdev2_t *netdev){
 				case 0x80: // SYS_ERR: probably after a wrong reception. For now restart 8510
 				case 0x82:
 					// receiving! Even after an error..
-					if (data[1] & 0x10) {  // EOT in Rx. Message complete. We can read
-						dev->rx_service = (data[3] & 0x07);
-						dev->rx_channel = (data[3] & 0x30)>>4;
+			        if (data[ATA8510_EVENTS] & ATA8510_EVENTS_EOTA) { // EOT in Rx. Message complete. We can read
+						dev->rx_service = ATA8510_CONFIG_SERVICE(data[ATA8510_CONFIG]);
+						dev->rx_channel = ATA8510_CONFIG_CHANNEL(data[ATA8510_CONFIG]);
 
                         // TODO: avoid races when accessing dev->rx_*
                         dev->rx_len = ata8510_ReadFillLevelRxFIFO(dev);
@@ -308,7 +308,7 @@ static void _isr(netdev2_t *netdev){
 			dev->unknown_case++;
 	}
 
-	if (saved8510status[0]&0x04) {
+	if (saved8510status[ATA8510_SYSTEM] & ATA8510_SYSTEM_SFIFO) {
 		// SFIFO event. In any case read the SFIFO
 		sfifolen=ata8510_ReadFillLevelRSSIFIFO(dev);
 		DEBUG("_isr rssilen = %d\n",(int)sfifolen);
