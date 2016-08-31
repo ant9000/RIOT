@@ -244,6 +244,8 @@ static void _isr(netdev2_t *netdev){
 DEBUG("_isr: SOTA, state=%d\n", mystate8510);
 	    switch (mystate8510) {
 		    case POLLING:
+                n = ata8510_ReadFillLevelRxFIFO(dev);
+DEBUG("_isr: SOTA, n=%d, dev->rx_rb.avail=%d\n", n, dev->rx_rb.avail);
                 if (dev->rx_rb.avail>0) {
                     DEBUG(
                         "_isr: RX start, discarding %d stale bytes from buffer\n",
@@ -281,16 +283,22 @@ DEBUG("_isr: EOTA, state=%d\n", mystate8510);
                 dev->service = ATA8510_CONFIG_SERVICE(status[ATA8510_CONFIG]);
                 dev->channel = ATA8510_CONFIG_CHANNEL(status[ATA8510_CONFIG]);
 
+// TODO: we need to consume 1 byte from the SPI bus: why?
+ata8510_send_cmd(dev,NULL,data,1);
+
                 n = ata8510_ReadFillLevelRxFIFO(dev);
+DEBUG("_isr: EOTA, n=%d, dev->rx_rb.avail=%d\n", n, dev->rx_rb.avail);
                 if (n>0) { // there is data to read
+
+// TODO: we need to consume 1 byte from the SPI bus: why?
+ata8510_send_cmd(dev,NULL,data,1);
+
                     ata8510_ReadRxFIFO(dev, n, data);
                     i = ringbuffer_add(&dev->rx_rb, (char *)data+3, n);
                     if (i != n){
                         DEBUG("_isr: rx buffer overflow\n");
                     }
                 }
-
-
                 DEBUG("--\n");
                 DEBUG("_isr 8510event %d RxLen %d\n", dev->interrupts, dev->rx_rb.avail);
 
@@ -307,13 +315,12 @@ DEBUG("_isr: EOTA, state=%d\n", mystate8510);
                     dev->RSSI[2] = 7;
                     for (i=3; i< 10; i++) DEBUG(".%d", dataSFIFO[i]);
                 }
+                DEBUG("\n");
 
-/*
                 // TODO: is this really needed?
                 ata8510_SetIdleMode(dev);
                 xtimer_usleep(70);
                 ata8510_SetPollingMode(dev);
-*/
 
                 netdev->event_callback(netdev, NETDEV2_EVENT_RX_COMPLETE);
                 break;

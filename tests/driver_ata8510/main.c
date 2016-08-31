@@ -144,7 +144,7 @@ void recv(netdev2_t *dev)
 #if ENABLE_DEBUG
     DEBUG("RECV: ");
     od_hex_dump(buffer, data_len, 0);
-    DEBUG("txt: ");
+    DEBUG("\ntxt: ");
     for (i = 0; i < data_len; i++) {
         if ((buffer[i] > 0x1F) && (buffer[i] < 0x80)) {
             putchar((char)buffer[i]);

@@ -39,9 +39,6 @@ void ata8510_setup(ata8510_t *dev, const ata8510_params_t *params)
     netdev->driver = &ata8510_driver;
     /* initialize device descriptor */
     memcpy(&dev->params, params, sizeof(ata8510_params_t));
-    dev->idle_state = ATA8510_STATE_IDLE;
-    dev->state = ATA8510_STATE_IDLE;
-    dev->pending_tx = 0;
     /* initialise SPI */
     spi_init_master(dev->params.spi, SPI_CONF_FIRST_RISING, params->spi_speed);
 }
@@ -142,6 +139,9 @@ void ata8510_reset(ata8510_t *dev)
     dev->service = 0;
     dev->channel = 0;
     dev->idle_state = IDLE;
+    dev->pending_tx = 0;
+
+	ata8510_SetIdleMode(dev);
 
     DEBUG("ata8510_reset(): reset complete.\n");
 }

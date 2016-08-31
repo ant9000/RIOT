@@ -25,7 +25,7 @@
 #include "periph/spi.h"
 #include "xtimer.h"
 
-#define ENABLE_DEBUG (0)
+#define ENABLE_DEBUG (1)
 #include "debug.h"
 
 uint16_t ata8510_get_addr_short(ata8510_t *dev)
@@ -77,6 +77,7 @@ uint8_t ata8510_SetPollingMode(ata8510_t *dev)
 	uint8_t data[3];
 	ata8510_send_cmd(dev, command, data, sizeof(command));
 	ata8510_set_state(dev, POLLING);
+    xtimer_usleep(70);
 	return data[0];
 }
 
@@ -88,6 +89,7 @@ uint8_t ata8510_SetIdleMode(ata8510_t *dev)
 	uint8_t data[3];
 	ata8510_send_cmd(dev, command, data, sizeof(command));
 	ata8510_set_state(dev, IDLE);
+    xtimer_usleep(70);
 	return data[0];
 }
 
