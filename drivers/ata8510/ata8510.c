@@ -142,6 +142,7 @@ void ata8510_reset(ata8510_t *dev)
     dev->pending_tx = 0;
 
 	ata8510_SetIdleMode(dev);
+    ata8510_write_sram_register(dev, 0x294, 0x2b);  // set RSSI polling to 11 (27.1ms)
 
     DEBUG("ata8510_reset(): reset complete.\n");
 }
@@ -165,13 +166,12 @@ bool ata8510_cca(ata8510_t *dev)
 size_t ata8510_send(ata8510_t *dev, uint8_t *data, size_t len, uint8_t service, uint8_t channel, ata8510_state_t state_after_tx)
 {
 	ata8510_SetIdleMode(dev);
+
 #if ENABLE_DEBUG
 	DEBUG("ata8510_send(\n\tlen=%d\n\tdata=[", len);
     for(int i=0;i<len;i++){ DEBUG(" 0x%02x", data[i]); }
     DEBUG(" ]\n\tservice=%d, channel=%d, next state=%d)\n", service, channel, state_after_tx);
 #endif
-	// check for 32 bytes max transmission (for now)!
-	if (len>32) len = 32; // truncation in case
 
 	ata8510_tx_prepare(dev);
 	ata8510_tx_load(dev, data, len, 0);

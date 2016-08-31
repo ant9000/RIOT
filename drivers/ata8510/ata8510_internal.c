@@ -106,6 +106,17 @@ int ata8510_WriteTxPreamble(ata8510_t *dev, uint8_t data_size, uint8_t *data)
 
 }
 
+uint8_t ata8510_ReadFillLevelTxFIFO(ata8510_t *dev){
+	uint8_t command[3]={ATA8510_CMD_READTXFILLLEVEL,0x00,0x00};
+	uint8_t data[3];
+	ata8510_send_cmd(dev, command, data, sizeof(command));
+	DEBUG(
+		"[ata8510] Read Fill Level Tx FIFO: [0x%02x 0x%02x 0x%02x]\n",
+		data[0], data[1], data[2]
+	);
+	return data[2];
+}
+
 /**
  * \brief Write TX buffer of the RF transceiver
  *
@@ -122,25 +133,25 @@ int ata8510_WriteTxFifo(ata8510_t *dev, uint8_t data_size, uint8_t *data)
         0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,
     };
 	uint8_t dummy[34];
-	uint8_t index;
+	uint8_t i;
 
 #if ENABLE_DEBUG
 	DEBUG("ata8510_WriteTxFifo(\n\tdata_size=%d\n\tdata=[", data_size);
     for(int i=0;i<data_size;i++){ DEBUG(" 0x%02x", data[i]); }
     DEBUG(" ])\n");
 #endif
-	if (data_size<=32) {
-		for (index=0; index <data_size; index++)
-		{
-			command[2 + index]= data[index];
-		}
 
-		ret=ata8510_send_cmd(dev, command, dummy, data_size+2);
-		return ret;
+	if(data_size>32) {
+        DEBUG("ata8510_WriteTxFifo: too much data received (%d), truncating\n", data_size);
+        data_size = 32;
+    }
 
-	} else
-		return -100;  // ROB: for now payload cannot exceed 32 bytes!!
+    for (i=0; i<data_size; i++) {
+        command[i + 2]= data[i];
+    }
 
+    ret=ata8510_send_cmd(dev, command, dummy, data_size+2);
+    return ret;
 }
 
 

@@ -77,7 +77,7 @@ uint8_t ata8510_SetPollingMode(ata8510_t *dev)
 	uint8_t data[3];
 	ata8510_send_cmd(dev, command, data, sizeof(command));
 	ata8510_set_state(dev, POLLING);
-    xtimer_usleep(70);
+    //xtimer_usleep(70);
 	return data[0];
 }
 
@@ -100,17 +100,6 @@ uint8_t ata8510_ReadFillLevelRxFIFO(ata8510_t *dev){
 	ata8510_send_cmd(dev, command, data, sizeof(command));
 	DEBUG(
 		"[ata8510] Read Fill Level Rx FIFO: [0x%02x 0x%02x 0x%02x]\n",
-		data[0], data[1], data[2]
-	);
-	return data[2];
-}
-
-uint8_t ata8510_ReadFillLevelTxFIFO(ata8510_t *dev){
-	uint8_t command[3]={ATA8510_CMD_READTXFILLLEVEL,0x00,0x00};
-	uint8_t data[3];
-	ata8510_send_cmd(dev, command, data, sizeof(command));
-	DEBUG(
-		"[ata8510] Read Fill Level Tx FIFO: [0x%02x 0x%02x 0x%02x]\n",
 		data[0], data[1], data[2]
 	);
 	return data[2];
@@ -145,7 +134,7 @@ void ata8510_ReadRSSIFIFO(ata8510_t *dev, uint8_t len, uint8_t *data){
         0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,
 	    0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,
     };
-	ata8510_send_cmd(dev, command, data, sizeof(command));
+	ata8510_send_cmd(dev, command, data, len+3);
 #if ENABLE_DEBUG
 	DEBUG("[ata8510] Read RSSI FIFO: [");
     for(int i=0;i<len;i++){ DEBUG(" 0x%02x", data[i]); }
@@ -182,7 +171,7 @@ void ata8510_write_sram_register(ata8510_t *dev, uint16_t addr, uint8_t data){
 	uint8_t dummy[5]={0,0,0,0,0};
 
 	ata8510_send_cmd(dev, command, dummy, 5);
-	DEBUG("[ata8510] Write SRAM / Register: addr = 0x%04x data = 0x%02x\n: ", addr,	(int)command[4]);
+	DEBUG("[ata8510] Write SRAM / Register: addr = 0x%04x, data = 0x%02x\n", addr, command[4]);
 }
 
 uint8_t ata8510_read_sram_register(ata8510_t *dev, uint16_t addr){
@@ -192,7 +181,7 @@ uint8_t ata8510_read_sram_register(ata8510_t *dev, uint16_t addr){
 	uint8_t command[6]={ATA8510_CMD_READSRAM,1,addrh,addrl,0x00,0x00};
 	uint8_t data[6]={0,0,0,0,0,0};
 	ata8510_send_cmd(dev, command, data, 6);
-	DEBUG("[ata8510] Read SRAM / Register: addr = 0x%04x : 0x%02x or %dd\n", addr, data[5], (int)data[5]);
+	DEBUG("[ata8510] Read SRAM / Register: addr = 0x%04x, data = 0x%02x\n", addr, data[5]);
 	return data[5];
 }
 
