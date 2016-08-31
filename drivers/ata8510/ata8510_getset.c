@@ -25,7 +25,7 @@
 #include "periph/spi.h"
 #include "xtimer.h"
 
-#define ENABLE_DEBUG (1)
+#define ENABLE_DEBUG (0)
 #include "debug.h"
 
 uint16_t ata8510_get_addr_short(ata8510_t *dev)

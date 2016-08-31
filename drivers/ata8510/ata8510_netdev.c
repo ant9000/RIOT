@@ -104,7 +104,7 @@ static int _send(netdev2_t *netdev, const struct iovec *vector, unsigned count)
     ata8510_t *dev = (ata8510_t *)netdev;
     const struct iovec *ptr = vector;
     size_t len = 0;
-    uint8_t data[37];
+    uint8_t data[ATA8510_DFIFO_TX_LENGTH];
     int n;
 
     if (dev->pending_tx) {
