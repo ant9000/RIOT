@@ -96,7 +96,8 @@ typedef struct {
     ringbuffer_t rx_rb;
     uint8_t service;
     uint8_t channel;
-    uint8_t RSSI[19];
+    uint8_t RSSI[16];
+    uint8_t RSSI_len;
     int interrupts;
     int sys_errors; 
     int unknown_case;
