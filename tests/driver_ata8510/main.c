@@ -242,8 +242,8 @@ void *thread_tx_rand(void *arg)     // Still has a problem on the very first mes
     // Transmit  a message every .... seconds where first byte is ID8510, then 6 bytes as counter of transmissions sent.
     ata8510_t *dev = &devs[0]; // acquires the 8510 device handle
     int numtx = 1;  // counter for trasmissions
-    char msg[32];
-    char msg2[32];
+    char msg[64];
+    char msg2[64];
     uint32_t time_between_tx;
     uint8_t checksum;
     uint32_t last_wakeup = xtimer_now();
@@ -257,8 +257,10 @@ void *thread_tx_rand(void *arg)     // Still has a problem on the very first mes
     time_between_tx = 1000000U;
     while (1) {
         xtimer_periodic_wakeup(&last_wakeup, time_between_tx);
+        printf("state: %d\n", ata8510_get_state(dev));
 
         numtx++;
+//      sprintf(msg2, "%d%06d_ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789_", ID8510, numtx);
         sprintf(msg2, "%d%06d_", ID8510, numtx);
         checksum = fletcher16((const uint8_t*)msg2, strlen(msg2));
         sprintf(msg,"%s%02x",msg2, checksum);

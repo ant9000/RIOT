@@ -128,17 +128,17 @@ void ata8510_GetEventBytes(ata8510_t *dev, uint8_t *data){
 }
 
 void ata8510_ReadRSSIFIFO(ata8510_t *dev, uint8_t len, uint8_t *data){
-	// FIFO has 16 bytes
-	uint8_t command[19]={
+    // FIFO has 16 bytes
+    uint8_t command[19]={
         ATA8510_CMD_READRSSIFIFO,len,0x00,
         0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,
-	    0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,
+        0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,
     };
-	ata8510_send_cmd(dev, command, data, len+3);
+    ata8510_send_cmd(dev, command, data, len+3);
 #if ENABLE_DEBUG
-	DEBUG("[ata8510] Read RSSI FIFO: [");
+    DEBUG("[ata8510] Read RSSI FIFO: [");
     for(int i=0;i<len;i++){ DEBUG(" 0x%02x", data[i]); }
-	DEBUG("]\n");
+    DEBUG("]\n");
 #endif
 }
 
