@@ -27,6 +27,7 @@
 
 #define ENABLE_DEBUG (1)
 #include "debug.h"
+#include "xtimer.h"
 
 int ata8510_send_cmd(const ata8510_t *dev,
                           const uint8_t *tx_buffer,
@@ -36,6 +37,7 @@ int ata8510_send_cmd(const ata8510_t *dev,
     int count;
     spi_acquire(dev->params.spi);
     gpio_clear(dev->params.cs_pin);
+	xtimer_usleep(1);
     count = spi_transfer_bytes(
         dev->params.spi, (char *)tx_buffer, (char *)rx_buffer, len
     );
