@@ -25,7 +25,7 @@
 #include "ata8510_internal.h"
 #include "ata8510_params.h"
 
-#define ENABLE_DEBUG (1)
+#define ENABLE_DEBUG (0)
 #include "debug.h"
 #include "xtimer.h"
 
