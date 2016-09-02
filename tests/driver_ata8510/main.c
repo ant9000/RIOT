@@ -242,8 +242,8 @@ void *thread_tx_rand(void *arg)     // Still has a problem on the very first mes
     // Transmit  a message every .... seconds where first byte is ID8510, then 6 bytes as counter of transmissions sent.
     ata8510_t *dev = &devs[0]; // acquires the 8510 device handle
     int numtx = 1;  // counter for trasmissions
-    char msg[64];
-    char msg2[64];
+    char msg[ATA8510_MAX_PKT_LENGTH+1];
+    char msg2[16];
     uint32_t time_between_tx;
     uint8_t checksum;
     uint32_t last_wakeup = xtimer_now();
@@ -259,11 +259,14 @@ void *thread_tx_rand(void *arg)     // Still has a problem on the very first mes
         xtimer_periodic_wakeup(&last_wakeup, time_between_tx);
         printf("state: %d\n", ata8510_get_state(dev));
 
-        numtx++;
         sprintf(msg2, "%d%06d_", ID8510, numtx);
         checksum = fletcher16((const uint8_t*)msg2, strlen(msg2));
-        sprintf(msg,"%s%02x_ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789",msg2, checksum);
-        printf("Sending: %s \n", msg);
+        sprintf(msg, "%s%02x", msg2, checksum);
+        for(i=strlen(msg);i<ATA8510_MAX_PKT_LENGTH-1;i++){ msg[i] = 'A' + (numtx % 27) -1; }
+        msg[ATA8510_MAX_PKT_LENGTH-1]='.';
+        msg[ATA8510_MAX_PKT_LENGTH]=0;
+        numtx++;
+        printf("Sending %d bytes:\n%s\n", ATA8510_MAX_PKT_LENGTH, msg);
 
         // test listen before talk
         do {
@@ -281,12 +284,8 @@ void *thread_tx_rand(void *arg)     // Still has a problem on the very first mes
             }
         } while (myturn == 0);
 
-/*
-        ata8510_send(dev, (uint8_t *)msg, strlen(msg), 0, 0, IDLE);  // service 0 channel 0 go to idle mode after Tx
-        (void)vector;
-*/
         vector[0].iov_base = msg;
-        vector[0].iov_len = strlen(msg);
+        vector[0].iov_len = ATA8510_MAX_PKT_LENGTH;
         ((netdev2_t *)dev)->driver->send((netdev2_t *)dev, vector, 1);
 
         time_between_tx = 1000000U + (random_uint32() % 3000000 ); // between 1 and 4 s

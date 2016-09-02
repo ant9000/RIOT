@@ -131,7 +131,7 @@ static int _send(netdev2_t *netdev, const struct iovec *vector, unsigned count)
     ata8510_tx_exec(dev);
 
     // send message
-    while(dev->tx_rb.avail>0) {
+    while(!ringbuffer_empty(&dev->tx_rb)) {
         n = ata8510_ReadFillLevelTxFIFO(dev);
         if (n < ATA8510_DFIFO_TX_LENGTH>>1) { // DFIFO_TX is at least half empty
             n = ATA8510_DFIFO_TX_LENGTH - n - 1; // free space
@@ -162,9 +162,7 @@ static int _recv(netdev2_t *netdev, void *buf, size_t len, void *info)
 
     ata8510_t *dev = (ata8510_t *)netdev;
 
-    // TODO: avoid races when accessing dev->rx_rb
-    if(!dev->rx_rb.avail){ return 0; }
-
+    if(ringbuffer_empty(&dev->rx_rb)){ return 0; }
     pkt_len = dev->rx_rb.avail;
 
     /* just return length when buf == NULL */
@@ -183,10 +181,7 @@ static int _recv(netdev2_t *netdev, void *buf, size_t len, void *info)
     /* copy payload */
     ringbuffer_get(&dev->rx_rb, (char *)buf, pkt_len);
 
-	DEBUG("_recv pkt_len=%d\n", pkt_len);
-	DEBUG("RSSI_len=%d\nFirst 5 Values: ", dev->RSSI_len); //ROB
-	for (i=0; i<6; i++) DEBUG("%d ",dev->RSSI[i]); //ROB
-	DEBUG("\n"); //ROB
+	DEBUG("_recv: pkt_len=%d\n", pkt_len);
 
     if (info != NULL) {
         netdev2_ieee802154_rx_info_t *radio_info = info;
@@ -196,9 +191,9 @@ static int _recv(netdev2_t *netdev, void *buf, size_t len, void *info)
         if (dev->RSSI_len > 0) {
             for (i=0; i<dev->RSSI_len; i++) { rssicalc+=dev->RSSI[i]; }
             radio_info->rssi = rssicalc/dev->RSSI_len;
-            DEBUG(" RSSI values = %d RSSI = %d \n", dev->RSSI_len, radio_info->rssi);
+            DEBUG("_recv: RSSI values = %d RSSI = %d \n", dev->RSSI_len, radio_info->rssi);
         } else {
-            DEBUG("no RSSI values read\n");
+            DEBUG("_recv: no RSSI values read\n");
         }
     }
     return pkt_len;
