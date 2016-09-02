@@ -265,7 +265,7 @@ void *thread_tx_rand(void *arg)     // Still has a problem on the very first mes
         n = strlen(msg);
         for(i=n;i<ATA8510_MAX_PKT_LENGTH-1;i++){ msg[i] = 'A' + (numtx - 1 + i - n) % 26; }
         msg[ATA8510_MAX_PKT_LENGTH-1]='.';
-        msg[ATA8510_MAX_PKT_LENGTH]=0;
+        msg[ATA8510_MAX_PKT_LENGTH]=0; // terminate msg (just needed for printf)
         numtx++;
         printf("Sending %d bytes:\n%s\n", ATA8510_MAX_PKT_LENGTH, msg);
 
@@ -286,7 +286,7 @@ void *thread_tx_rand(void *arg)     // Still has a problem on the very first mes
         } while (myturn == 0);
 
         vector[0].iov_base = msg;
-        vector[0].iov_len = ATA8510_MAX_PKT_LENGTH - 1; // TODO: receiver fails with full packet, why?
+        vector[0].iov_len = ATA8510_MAX_PKT_LENGTH;
         ((netdev2_t *)dev)->driver->send((netdev2_t *)dev, vector, 1);
 
         time_between_tx = 5000000U;

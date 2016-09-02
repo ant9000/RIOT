@@ -41,7 +41,7 @@ extern "C" {
 /**
  * @brief   Maximum possible packet size in byte
  */
-#define ATA8510_MAX_PKT_LENGTH  (256)
+#define ATA8510_MAX_PKT_LENGTH  (255)
 #define ATA8510_DFIFO_TX_LENGTH (32)
 #define ATA8510_DFIFO_RX_LENGTH (32)
 #define ATA8510_SFIFO_LENGTH    (16)
