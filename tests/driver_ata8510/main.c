@@ -229,13 +229,9 @@ void recv(netdev2_t *dev)
 // ------------------------------------------------------------------------------
 
 
-//#define THREADTXRAND
-#define THREADCHECKRXERRORS
-
 #ifdef THREADTXRAND
 #include "random.h"
 #define RAND_SEED 0xC0FFEE
-#define ID8510 1   // used as first character transmitted
 
 void *thread_tx_rand(void *arg)     // Still has a problem on the very first message sent: the sniffing is returning zeroes. To be fixed..
 {

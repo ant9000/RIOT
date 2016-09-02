@@ -24,6 +24,18 @@ USEMODULE += random
 # ROB use checksum
 USEMODULE += checksum
 
+
 CFLAGS += -DDEVELHELP
+
+RX ?= 1
+TX ?= 0
+ifeq ($(TX),1)
+  RX = 0
+  ID8510 ?= 1
+  CFLAGS += -DTHREADTXRAND -DID8510=$(ID8510)
+endif
+ifeq ($(RX),1)
+  CFLAGS += -DTHREADCHECKRXERRORS
+endif
 
 include $(RIOTBASE)/Makefile.include

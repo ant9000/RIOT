@@ -14,3 +14,13 @@ radio device:
 # Usage
 For testing the radio driver you can use the netif and txtsnd shell commands
 that are included in this application.
+
+To build a receiver:
+    BOARD=yarm make flash
+
+To build a transmitter (default ID is 1):
+    BOARD=yarm TX=1 make flash
+
+To build a transmitter with a different ID (range is 1-9):
+    BOARD=yarm TX=1 ID8510=5 make flash
+
