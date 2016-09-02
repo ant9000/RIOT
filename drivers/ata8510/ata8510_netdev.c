@@ -235,8 +235,9 @@ static void _isr(netdev2_t *netdev){
     // empty all buffers as soon as possible
 
     if (
-        (status[ATA8510_SYSTEM] & ATA8510_SYSTEM_SFIFO) || // SFIFO fill event
-	    (status[ATA8510_EVENTS] & ATA8510_EVENTS_EOTA)     // EOTA event
+        (status[ATA8510_SYSTEM] & ATA8510_SYSTEM_SFIFO)    || // SFIFO fill event
+        (status[ATA8510_SYSTEM] & ATA8510_SYSTEM_DFIFO_RX) || // DFIFO_RX fill event
+	    (status[ATA8510_EVENTS] & ATA8510_EVENTS_EOTA)        // EOTA event
     ) {
         switch (mystate8510) {
             case TX_ON:
@@ -274,7 +275,13 @@ static void _isr(netdev2_t *netdev){
     errorcode = 0;
 	if (status[ATA8510_SYSTEM] & ATA8510_SYSTEM_SYS_ERR) {
 		errorcode = ata8510_read_error_code(dev);
-		dev->sys_errors++;
+        switch (errorcode) {
+            case 21: //DEBUG_ERROR_CODE_SFIFO_OVER_UNDER_FLOW
+                break;
+            default:
+		        dev->sys_errors++;
+                break;
+        }
 	}
 
     DEBUG("_isr: state: %d\n", mystate8510);
