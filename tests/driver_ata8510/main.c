@@ -142,9 +142,9 @@ void recv(netdev2_t *dev)
 
     data_len = dev->driver->recv(dev, buffer, sizeof(buffer), &rx_info);
 #if ENABLE_DEBUG
-    DEBUG("RECV:\n");
+    DEBUG("RECV %d bytes:\n", data_len);
     od_hex_dump(buffer, data_len, 0);
-    DEBUG("txt: ");
+    DEBUG("txt:\n     ");
     for (i = 0; i < data_len; i++) {
         if ((buffer[i] > 0x1F) && (buffer[i] < 0x80)) {
             putchar((char)buffer[i]);
@@ -248,7 +248,7 @@ void *thread_tx_rand(void *arg)     // Still has a problem on the very first mes
     uint8_t checksum;
     uint32_t last_wakeup = xtimer_now();
     uint8_t myturn;
-    uint8_t i;
+    uint8_t i, n;
     struct iovec vector[1];
 
     printf("thread tx rand, pid: %" PRIkernel_pid "\n", thread_getpid());
@@ -262,7 +262,8 @@ void *thread_tx_rand(void *arg)     // Still has a problem on the very first mes
         sprintf(msg2, "%d%06d_", ID8510, numtx);
         checksum = fletcher16((const uint8_t*)msg2, strlen(msg2));
         sprintf(msg, "%s%02x", msg2, checksum);
-        for(i=strlen(msg);i<ATA8510_MAX_PKT_LENGTH-1;i++){ msg[i] = 'A' + (numtx % 27) -1; }
+        n = strlen(msg);
+        for(i=n;i<ATA8510_MAX_PKT_LENGTH-1;i++){ msg[i] = 'A' + (numtx - 1 + i - n) % 26; }
         msg[ATA8510_MAX_PKT_LENGTH-1]='.';
         msg[ATA8510_MAX_PKT_LENGTH]=0;
         numtx++;
