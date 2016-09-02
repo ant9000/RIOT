@@ -32,11 +32,14 @@
 #include "ata8510_netdev.h"
 #include "ata8510_internal.h"
 #include "xtimer.h"
+#include "mutex.h"
 
 #define ENABLE_DEBUG (1)
 #include "debug.h"
 
 #define _MAX_MHR_OVERHEAD   (25)
+
+static mutex_t mutex = MUTEX_INIT;
 
 static int _send(netdev2_t *netdev, const struct iovec *vector, unsigned count);
 static int _recv(netdev2_t *netdev, void *buf, size_t len, void *info);
@@ -132,15 +135,12 @@ static int _send(netdev2_t *netdev, const struct iovec *vector, unsigned count)
     // send message
     while(!ringbuffer_empty(&dev->rb)) {
         n = ata8510_ReadFillLevelTxFIFO(dev);
-        if (n < ATA8510_DFIFO_TX_LENGTH>>1) { // DFIFO_TX is at least half empty
-            n = ATA8510_DFIFO_TX_LENGTH - n - 1; // free space
-            if (n > ATA8510_DFIFO_TX_LENGTH>>1) { // never fill pipe more than half
-                n = ATA8510_DFIFO_TX_LENGTH>>1;
-            }
-            n = ringbuffer_get(&dev->rb, (char *)data, n);
+        if (n < ATA8510_DFIFO_TX_LENGTH) { // DFIFO_TX has free space
+            n = ringbuffer_get(&dev->rb, (char *)data, ATA8510_DFIFO_TX_LENGTH - n);
             if (n) {
                 DEBUG("_send: batch %d bytes\n", n);
                 ata8510_WriteTxFifo(dev, n, data);
+                mutex_lock(&mutex); // unlocked by isr()
             }
         }
     }
@@ -263,11 +263,22 @@ static void _isr(netdev2_t *netdev){
         (status[ATA8510_SYSTEM] & ATA8510_SYSTEM_DFIFO_RX) || // DFIFO_RX fill event
 	    (status[ATA8510_EVENTS] & ATA8510_EVENTS_EOTA)        // EOTA event
     ) {
-        dfifo_rx_len = ata8510_ReadFillLevelRxFIFO(dev);
-        if (dfifo_rx_len>0) { // there is data to read
-            ata8510_ReadRxFIFO(dev, dfifo_rx_len, data);
-            n = ringbuffer_add(&dev->rb, (char *)data+3, dfifo_rx_len);
-            if (n != dfifo_rx_len){ DEBUG("_isr: RX buffer overflow"); }
+        if(mystate8510==POLLING){
+            dfifo_rx_len = ata8510_ReadFillLevelRxFIFO(dev);
+            if (dfifo_rx_len>0) { // there is data to read
+                ata8510_ReadRxFIFO(dev, dfifo_rx_len, data);
+                n = ringbuffer_add(&dev->rb, (char *)data+3, dfifo_rx_len);
+                if (n != dfifo_rx_len){ DEBUG("_isr: RX buffer overflow"); }
+            }
+        }
+	}
+
+	if (
+        (status[ATA8510_SYSTEM] & ATA8510_SYSTEM_DFIFO_TX) || // DFIFO_TX fill event
+	    (status[ATA8510_EVENTS] & ATA8510_EVENTS_EOTA)        // EOTA event
+    ) {
+        if(mystate8510==TX_ON){
+            mutex_unlock(&mutex); // unlock send()
         }
 	}
 
