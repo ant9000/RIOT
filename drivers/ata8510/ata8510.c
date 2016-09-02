@@ -203,14 +203,14 @@ void ata8510_tx_prepare(ata8510_t *dev)
 	DEBUG("ata8510_WriteTxPreamble\n");
 
     // empty TX buffer
-    ringbuffer_remove(&dev->tx_rb,dev->tx_rb.avail);
+    ringbuffer_remove(&dev->rb,dev->rb.avail);
 }
 
 size_t ata8510_tx_load(ata8510_t *dev, uint8_t *data,
                          size_t len, size_t offset)
 {
     size_t n;
-    n = ringbuffer_add(&dev->tx_rb, (char *)data, len);
+    n = ringbuffer_add(&dev->rb, (char *)data, len);
     if (n != len){
 	    DEBUG("ata8510_tx_load: tx buffer overflow\n");
     }

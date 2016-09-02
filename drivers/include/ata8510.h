@@ -41,7 +41,7 @@ extern "C" {
 /**
  * @brief   Maximum possible packet size in byte
  */
-#define ATA8510_MAX_PKT_LENGTH  (128)
+#define ATA8510_MAX_PKT_LENGTH  (256)
 #define ATA8510_DFIFO_TX_LENGTH (32)
 #define ATA8510_DFIFO_RX_LENGTH (32)
 #define ATA8510_SFIFO_LENGTH    (16)
@@ -90,10 +90,8 @@ typedef struct {
                                                  this is required to know when to
                                                  return to @ref ata8510_t::idle_state */
     /* TODO: find a better way */
-    uint8_t tx_mem[ATA8510_MAX_PKT_LENGTH];
-    uint8_t rx_mem[ATA8510_MAX_PKT_LENGTH];
-    ringbuffer_t tx_rb;
-    ringbuffer_t rx_rb;
+    uint8_t mem[ATA8510_MAX_PKT_LENGTH];
+    ringbuffer_t rb;
     uint8_t service;
     uint8_t channel;
     uint8_t RSSI[16];

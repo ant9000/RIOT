@@ -85,8 +85,7 @@ static int _init(netdev2_t *netdev)
         DEBUG("[ata8510] error: unable to read correct part number\n");
         return -1;
     }
-    ringbuffer_init(&dev->tx_rb, (char *)dev->tx_mem, sizeof(dev->tx_mem));
-    ringbuffer_init(&dev->rx_rb, (char *)dev->rx_mem, sizeof(dev->rx_mem));
+    ringbuffer_init(&dev->rb, (char *)dev->mem, sizeof(dev->mem));
 
     DEBUG("[ata8510] init done\n");
 
@@ -131,14 +130,14 @@ static int _send(netdev2_t *netdev, const struct iovec *vector, unsigned count)
     ata8510_tx_exec(dev);
 
     // send message
-    while(!ringbuffer_empty(&dev->tx_rb)) {
+    while(!ringbuffer_empty(&dev->rb)) {
         n = ata8510_ReadFillLevelTxFIFO(dev);
         if (n < ATA8510_DFIFO_TX_LENGTH>>1) { // DFIFO_TX is at least half empty
             n = ATA8510_DFIFO_TX_LENGTH - n - 1; // free space
             if (n > ATA8510_DFIFO_TX_LENGTH>>1) { // never fill pipe more than half
                 n = ATA8510_DFIFO_TX_LENGTH>>1;
             }
-            n = ringbuffer_get(&dev->tx_rb, (char *)data, n);
+            n = ringbuffer_get(&dev->rb, (char *)data, n);
             if (n) {
                 DEBUG("_send: batch %d bytes\n", n);
                 ata8510_WriteTxFifo(dev, n, data);
@@ -162,8 +161,8 @@ static int _recv(netdev2_t *netdev, void *buf, size_t len, void *info)
 
     ata8510_t *dev = (ata8510_t *)netdev;
 
-    if(ringbuffer_empty(&dev->rx_rb)){ return 0; }
-    pkt_len = dev->rx_rb.avail;
+    if(ringbuffer_empty(&dev->rb)){ return 0; }
+    pkt_len = dev->rb.avail;
 
     /* just return length when buf == NULL */
     if (buf == NULL) {
@@ -179,7 +178,7 @@ static int _recv(netdev2_t *netdev, void *buf, size_t len, void *info)
     }
 
     /* copy payload */
-    ringbuffer_get(&dev->rx_rb, (char *)buf, pkt_len);
+    ringbuffer_get(&dev->rb, (char *)buf, pkt_len);
 
 	DEBUG("_recv: pkt_len=%d\n", pkt_len);
 
@@ -266,7 +265,7 @@ static void _isr(netdev2_t *netdev){
         dfifo_rx_len = ata8510_ReadFillLevelRxFIFO(dev);
         if (dfifo_rx_len>0) { // there is data to read
             ata8510_ReadRxFIFO(dev, dfifo_rx_len, data);
-            n = ringbuffer_add(&dev->rx_rb, (char *)data+3, dfifo_rx_len);
+            n = ringbuffer_add(&dev->rb, (char *)data+3, dfifo_rx_len);
             if (n != dfifo_rx_len){ DEBUG("_isr: RX buffer overflow"); }
         }
 	}
@@ -318,12 +317,12 @@ static void _isr(netdev2_t *netdev){
 	    switch (mystate8510) {
             case TX_ON:
                 // flush TX ringbuffer
-                if (dev->tx_rb.avail>0) {
+                if (!ringbuffer_empty(&dev->rb)) {
                     DEBUG(
                         "_isr: TX end, discarding %d stale bytes from buffer\n",
-                        dev->tx_rb.avail
+                        dev->rb.avail
                     );
-                    ringbuffer_remove(&dev->tx_rb, dev->tx_rb.avail);
+                    ringbuffer_remove(&dev->rb, dev->rb.avail);
                 }
 
                 ata8510_SetIdleMode(dev);
