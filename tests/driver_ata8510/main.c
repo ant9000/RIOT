@@ -142,9 +142,9 @@ void recv(netdev2_t *dev)
 
     data_len = dev->driver->recv(dev, buffer, sizeof(buffer), &rx_info);
 #if ENABLE_DEBUG
-    DEBUG("RECV: ");
+    DEBUG("RECV:\n");
     od_hex_dump(buffer, data_len, 0);
-    DEBUG("\ntxt: ");
+    DEBUG("txt: ");
     for (i = 0; i < data_len; i++) {
         if ((buffer[i] > 0x1F) && (buffer[i] < 0x80)) {
             putchar((char)buffer[i]);
@@ -183,7 +183,7 @@ void recv(netdev2_t *dev)
         if (discard == 0) {
             if (rxfirstreceived[yarmtxidreceived] == 1) {
                 // check msg length
-                if (data_len != 10) {
+                if (data_len < 10) {
                     DEBUG("ERROR: wrong message length %d: Discard Message!\n", data_len);
                 } else {
                     // checksum control
@@ -260,10 +260,9 @@ void *thread_tx_rand(void *arg)     // Still has a problem on the very first mes
         printf("state: %d\n", ata8510_get_state(dev));
 
         numtx++;
-//      sprintf(msg2, "%d%06d_ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789_", ID8510, numtx);
         sprintf(msg2, "%d%06d_", ID8510, numtx);
         checksum = fletcher16((const uint8_t*)msg2, strlen(msg2));
-        sprintf(msg,"%s%02x",msg2, checksum);
+        sprintf(msg,"%s%02x_ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789",msg2, checksum);
         printf("Sending: %s \n", msg);
 
         // test listen before talk
