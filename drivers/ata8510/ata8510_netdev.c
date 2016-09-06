@@ -115,7 +115,7 @@ static int _send(netdev2_t *netdev, const struct iovec *vector, unsigned count)
     }
     dev->pending_tx = 1;
 
-    ata8510_SetIdleMode(dev);
+    ata8510_set_state(dev, ATA8510_STATE_IDLE);
     ata8510_tx_prepare(dev);
 
     /* load packet data into buffer */
@@ -198,13 +198,117 @@ static int _recv(netdev2_t *netdev, void *buf, size_t len, void *info)
     return pkt_len;
 }
 
+/*
+static int _set_state(ata8510_t *dev, netopt_state_t state)
+{
+    switch (state) {
+        case NETOPT_STATE_SLEEP:
+            ata8510_set_state(dev, ATA8510_STATE_IDLE);
+            break;
+        case NETOPT_STATE_IDLE:
+            ata8510_set_state(dev, ATA8510_STATE_POLLING);
+            break;
+        case NETOPT_STATE_TX:
+            ata8510_set_state(dev, ATA8510_STATE_TX_ON);
+            break;
+        case NETOPT_STATE_RESET:
+            ata8510_reset(dev);
+            break;
+        default:
+            return -ENOTSUP;
+    }
+    return sizeof(netopt_state_t);
+}
+*/
+
+netopt_state_t _get_state(ata8510_t *dev)
+{
+    switch (ata8510_get_status(dev)) {
+        case ATA8510_STATE_IDLE:
+            return NETOPT_STATE_SLEEP;
+        case ATA8510_STATE_POLLING:
+            return NETOPT_STATE_RX;
+        case ATA8510_STATE_TX_ON:
+            return NETOPT_STATE_TX;
+        case ATA8510_STATE_RX_ON:
+        default:
+            return NETOPT_STATE_IDLE;
+    }
+}
+
 static int _get(netdev2_t *netdev, netopt_t opt, void *val, size_t max_len)
 {
-    int res = -ENOTSUP;
+    ata8510_t *dev = (ata8510_t *) netdev;
+
+    if (netdev == NULL) {
+        return -ENODEV;
+    }
+
+    /* getting these options doesn't require the transceiver at all */
+    switch (opt) {
+        case NETOPT_MAX_PACKET_SIZE:
+            if (max_len < sizeof(int16_t)) {
+                return -EOVERFLOW;
+            }
+            *((uint16_t *)val) = ATA8510_MAX_PKT_LENGTH - _MAX_MHR_OVERHEAD;
+            return sizeof(uint16_t);
+
+        case NETOPT_STATE:
+            if (max_len < sizeof(netopt_state_t)) {
+                return -EOVERFLOW;
+            }
+            *((netopt_state_t *)val) = _get_state(dev);
+            return sizeof(netopt_state_t);
+
+        default:
+            /* Can still be handled in second switch */
+            break;
+    }
+
+    int res;
 
     if (((res = netdev2_ieee802154_get((netdev2_ieee802154_t *)netdev, opt, val,
                                        max_len)) >= 0) || (res != -ENOTSUP)) {
         return res;
+    }
+
+    uint8_t old_state = ata8510_get_status(dev);
+    res = 0;
+
+    /* temporarily switch to IDLE state */
+    if (old_state != ATA8510_STATE_IDLE) {
+        ata8510_assert_awake(dev);
+    }
+
+    /* these options require the transceiver to be not sleeping*/
+    switch (opt) {
+        case NETOPT_IS_CHANNEL_CLR:
+            if (ata8510_cca(dev)) {
+                *((netopt_enable_t *)val) = NETOPT_ENABLE;
+            }
+            else {
+                *((netopt_enable_t *)val) = NETOPT_DISABLE;
+            }
+            res = sizeof(netopt_enable_t);
+            break;
+/*
+        case NETOPT_CCA_THRESHOLD:
+            if (max_len < sizeof(int8_t)) {
+                res = -EOVERFLOW;
+            }
+            else {
+                *((int8_t *)val) = ata8510_get_cca_threshold(dev);
+                res = sizeof(int8_t);
+            }
+            break;
+*/
+        default:
+            res = -ENOTSUP;
+    }
+
+    /* go back to original state */
+    if (old_state != ATA8510_STATE_IDLE) {
+        ata8510_set_state(dev, old_state);
     }
 
     return res;
@@ -240,7 +344,7 @@ static void _isr(netdev2_t *netdev){
 	    (status[ATA8510_EVENTS] & ATA8510_EVENTS_EOTA)        // EOTA event
     ) {
         switch (mystate8510) {
-            case TX_ON:
+            case ATA8510_STATE_TX_ON:
                 // TODO: in TX mode, SFIFO fills up when preamble is big
                 break;
             default:
@@ -263,7 +367,7 @@ static void _isr(netdev2_t *netdev){
         (status[ATA8510_SYSTEM] & ATA8510_SYSTEM_DFIFO_RX) || // DFIFO_RX fill event
 	    (status[ATA8510_EVENTS] & ATA8510_EVENTS_EOTA)        // EOTA event
     ) {
-        if(mystate8510==POLLING){
+        if(mystate8510==ATA8510_STATE_POLLING){
             dfifo_rx_len = ata8510_ReadFillLevelRxFIFO(dev);
             if (dfifo_rx_len>0) { // there is data to read
                 ata8510_ReadRxFIFO(dev, dfifo_rx_len, data);
@@ -277,7 +381,7 @@ static void _isr(netdev2_t *netdev){
         (status[ATA8510_SYSTEM] & ATA8510_SYSTEM_DFIFO_TX) || // DFIFO_TX fill event
 	    (status[ATA8510_EVENTS] & ATA8510_EVENTS_EOTA)        // EOTA event
     ) {
-        if(mystate8510==TX_ON){
+        if(mystate8510==ATA8510_STATE_TX_ON){
             mutex_unlock(&mutex); // unlock send()
         }
 	}
@@ -333,7 +437,7 @@ static void _isr(netdev2_t *netdev){
     // EOTA event
 	if (status[ATA8510_EVENTS] & ATA8510_EVENTS_EOTA) {
 	    switch (mystate8510) {
-            case TX_ON:
+            case ATA8510_STATE_TX_ON:
                 // flush TX ringbuffer
                 if (!ringbuffer_empty(&dev->rb)) {
                     DEBUG(
@@ -343,25 +447,25 @@ static void _isr(netdev2_t *netdev){
                     ringbuffer_remove(&dev->rb, dev->rb.avail);
                 }
 
-                ata8510_SetIdleMode(dev);
+                ata8510_set_state(dev, ATA8510_STATE_IDLE);
                 switch (mynextstate8510) {
-                    case IDLE:
+                    case ATA8510_STATE_IDLE:
                         break;
-                    case POLLING:
-                         ata8510_SetPollingMode(dev);
-                         break;
+                    case ATA8510_STATE_POLLING:
+                        ata8510_set_state(dev, ATA8510_STATE_POLLING);
+                        break;
                     default:
                          DEBUG("_isr: Cannot handle state %d after TX\n", mynextstate8510);
                          break;
                 }
                 dev->pending_tx = 0;
                 break;
-		    case POLLING:
+		    case ATA8510_STATE_POLLING:
                 dev->service = ATA8510_CONFIG_SERVICE(status[ATA8510_CONFIG]);
                 dev->channel = ATA8510_CONFIG_CHANNEL(status[ATA8510_CONFIG]);
 
-                ata8510_SetIdleMode(dev);
-                ata8510_SetPollingMode(dev);
+                ata8510_set_state(dev, ATA8510_STATE_IDLE);
+                ata8510_set_state(dev, ATA8510_STATE_POLLING);
 
                 netdev->event_callback(netdev, NETDEV2_EVENT_RX_COMPLETE);
                 break;

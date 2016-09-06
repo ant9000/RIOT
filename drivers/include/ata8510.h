@@ -54,13 +54,6 @@ extern "C" {
 /** @} */
 
 /**
- * @brief   Flags for device internal states (see datasheet)
- * @{
- */
-#define ATA8510_STATE_IDLE         (0x20)     /**< idle */
-/** @} */
-
-/**
  * @brief struct holding all params needed for device initialization
  */
 typedef struct ata8510_params {
@@ -489,11 +482,11 @@ void ata8510_set_option(ata8510_t *dev, uint16_t option, bool state);
 
 /* Possible ata8510 states */
 typedef enum {
-	IDLE = 0,		/* 0: IDLE state No TRX, waiting for commands */
-	TX_ON,			/* 1: Transmission is ongoing */
-	RX_ON,			/* 2: Reception in progress (for payloads more than 32 bytes) */
-	POLLING,		/* 3: POLLING state */
-	RSSIMEAS		/* 4: RSSI Measurement */
+    ATA8510_STATE_IDLE = 0,		/* 0: IDLE state No TRX, waiting for commands */
+    ATA8510_STATE_TX_ON,		/* 1: Transmission is ongoing */
+    ATA8510_STATE_POLLING,		/* 2: POLLING state */
+//  ATA8510_STATE_RX_ON,		/* 3: Reception in progress (for payloads more than 32 bytes) */
+//  ATA8510_STATE_RSSIMEAS		/* 4: RSSI Measurement */
 } ata8510_state_t;
 
 

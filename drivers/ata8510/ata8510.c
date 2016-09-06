@@ -138,10 +138,10 @@ void ata8510_reset(ata8510_t *dev)
 
     dev->service = 0;
     dev->channel = 0;
-    dev->idle_state = IDLE;
+    dev->idle_state = ATA8510_STATE_IDLE;
     dev->pending_tx = 0;
 
-	ata8510_SetIdleMode(dev);
+    ata8510_set_state(dev, ATA8510_STATE_IDLE);
     ata8510_write_sram_register(dev, 0x294, 0x2b);  // set RSSI polling to 11 (27.1ms)
 
     DEBUG("ata8510_reset(): reset complete.\n");
@@ -165,7 +165,7 @@ bool ata8510_cca(ata8510_t *dev)
 
 size_t ata8510_send(ata8510_t *dev, uint8_t *data, size_t len, uint8_t service, uint8_t channel, ata8510_state_t state_after_tx)
 {
-	ata8510_SetIdleMode(dev);
+    ata8510_set_state(dev, ATA8510_STATE_IDLE);
 
 #if ENABLE_DEBUG
 	DEBUG("ata8510_send(\n\tlen=%d\n\tdata=[", len);
@@ -232,7 +232,6 @@ void ata8510_tx_exec(ata8510_t *dev)
 		DEBUG("tx_exec: Channel not permitted %d\n",dev->channel);
 		return;
 	}
-	ata8510_set_state(dev, TX_ON);
 	ata8510_SetSystemMode(dev, ATA8510_RF_TXMODE, modeTx);
 	DEBUG("ata8510_SetSystemMode TXMode. modeTx = %02x\n",modeTx);
 }
