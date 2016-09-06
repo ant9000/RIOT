@@ -130,7 +130,7 @@ static int _send(netdev2_t *netdev, const struct iovec *vector, unsigned count)
     }
 
     // activate tx mode 
-    ata8510_tx_exec(dev);
+    ata8510_set_state(dev, ATA8510_STATE_TX_ON);
 
     // send message
     while(!ringbuffer_empty(&dev->rb)) {
@@ -230,7 +230,7 @@ netopt_state_t _get_state(ata8510_t *dev)
             return NETOPT_STATE_RX;
         case ATA8510_STATE_TX_ON:
             return NETOPT_STATE_TX;
-        case ATA8510_STATE_RX_ON:
+//      case ATA8510_STATE_RX_ON:
         default:
             return NETOPT_STATE_IDLE;
     }

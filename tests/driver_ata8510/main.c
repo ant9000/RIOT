@@ -390,7 +390,7 @@ int main(void)
 
     int ramdata = ata8510_read_sram_register(dev, 0x294);
     printf("0x294 = %02x\n",ramdata);
-    ata8510_SetPollingMode(dev);
+    ata8510_set_state(dev, ATA8510_STATE_POLLING);
 
 #ifdef THREADTXRAND
     printf("[main] Starting tx rand thread...\n");
