@@ -61,6 +61,7 @@ void ata8510_power_on(const ata8510_t *dev){
 
 void ata8510_assert_awake(ata8510_t *dev)
 {
+    ata8510_set_state(dev, ATA8510_STATE_IDLE);
 }
 
 void ata8510_hardware_reset(ata8510_t *dev)

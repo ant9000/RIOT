@@ -96,11 +96,12 @@ void ata8510_set_page(ata8510_t *dev, uint8_t page)
 
 uint16_t ata8510_get_pan(ata8510_t *dev)
 {
-    return 0;
+    return dev->netdev.pan;
 }
 
 void ata8510_set_pan(ata8510_t *dev, uint16_t pan)
 {
+    dev->netdev.pan = pan;
 }
 
 int16_t ata8510_get_txpower(ata8510_t *dev)

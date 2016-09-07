@@ -198,7 +198,6 @@ static int _recv(netdev2_t *netdev, void *buf, size_t len, void *info)
     return pkt_len;
 }
 
-/*
 static int _set_state(ata8510_t *dev, netopt_state_t state)
 {
     switch (state) {
@@ -219,7 +218,6 @@ static int _set_state(ata8510_t *dev, netopt_state_t state)
     }
     return sizeof(netopt_state_t);
 }
-*/
 
 netopt_state_t _get_state(ata8510_t *dev)
 {
@@ -230,7 +228,6 @@ netopt_state_t _get_state(ata8510_t *dev)
             return NETOPT_STATE_RX;
         case ATA8510_STATE_TX_ON:
             return NETOPT_STATE_TX;
-//      case ATA8510_STATE_RX_ON:
         default:
             return NETOPT_STATE_IDLE;
     }
@@ -243,6 +240,8 @@ static int _get(netdev2_t *netdev, netopt_t opt, void *val, size_t max_len)
     if (netdev == NULL) {
         return -ENODEV;
     }
+
+//DEBUG("_get: opt=%d\n", opt);
 
     /* getting these options doesn't require the transceiver at all */
     switch (opt) {
@@ -272,13 +271,13 @@ static int _get(netdev2_t *netdev, netopt_t opt, void *val, size_t max_len)
         return res;
     }
 
-    uint8_t old_state = ata8510_get_state(dev);
+//  uint8_t old_state = ata8510_get_state(dev);
     res = 0;
 
-    /* temporarily switch to IDLE state */
-    if (old_state != ATA8510_STATE_IDLE) {
-        ata8510_assert_awake(dev);
-    }
+//  /* temporarily switch to IDLE state */
+//  if (old_state != ATA8510_STATE_IDLE) {
+//      ata8510_assert_awake(dev);
+//  }
 
     /* these options require the transceiver to be not sleeping*/
     switch (opt) {
@@ -306,17 +305,207 @@ static int _get(netdev2_t *netdev, netopt_t opt, void *val, size_t max_len)
             res = -ENOTSUP;
     }
 
-    /* go back to original state */
-    if (old_state != ATA8510_STATE_IDLE) {
-        ata8510_set_state(dev, old_state);
-    }
+//  /* go back to original state */
+//  if (old_state != ATA8510_STATE_IDLE) {
+//      ata8510_set_state(dev, old_state);
+//  }
 
     return res;
 }
 
 static int _set(netdev2_t *netdev, netopt_t opt, void *val, size_t len)
 {
+    ata8510_t *dev = (ata8510_t *) netdev;
+//  uint8_t old_state = ata8510_get_state(dev);
     int res = -ENOTSUP;
+
+    if (dev == NULL) {
+        return -ENODEV;
+    }
+
+DEBUG("_set: opt=%d\n", opt);
+
+//  /* temporarily switch to IDLE state */
+//  if (old_state == ATA8510_STATE_IDLE) {
+//      ata8510_assert_awake(dev);
+//  }
+
+    switch (opt) {
+        case NETOPT_ADDRESS:
+            if (len > sizeof(uint16_t)) {
+                res = -EOVERFLOW;
+            }
+            else {
+                ata8510_set_addr_short(dev, *((uint16_t *)val));
+                /* don't set res to set netdev2_ieee802154_t::short_addr */
+            }
+            break;
+
+        case NETOPT_ADDRESS_LONG:
+            if (len > sizeof(uint64_t)) {
+                res = -EOVERFLOW;
+            }
+            else {
+                ata8510_set_addr_long(dev, *((uint64_t *)val));
+                /* don't set res to set netdev2_ieee802154_t::long_addr */
+            }
+            break;
+
+        case NETOPT_NID:
+            if (len > sizeof(uint16_t)) {
+                res = -EOVERFLOW;
+            }
+            else {
+                ata8510_set_pan(dev, *((uint16_t *)val));
+                /* don't set res to set netdev2_ieee802154_t::pan */
+            }
+            break;
+
+//      case NETOPT_CHANNEL:
+//          if (len != sizeof(uint16_t)) {
+//              res = -EINVAL;
+//          }
+//          else {
+//              uint8_t chan = ((uint8_t *)val)[0];
+//              if (chan < ATA8510_MIN_CHANNEL ||
+//                  chan > ATA8510_MAX_CHANNEL) {
+//                  res = -EINVAL;
+//                  break;
+//              }
+//              ata8510_set_chan(dev, chan);
+//              /* don't set res to set netdev2_ieee802154_t::chan */
+//          }
+//          break;
+
+//      case NETOPT_CHANNEL_PAGE:
+//          if (len != sizeof(uint16_t)) {
+//              res = -EINVAL;
+//          }
+//          else {
+//              uint8_t page = ((uint8_t *)val)[0];
+//              if (page != 0) {
+//                  res = -EINVAL;
+//              }
+//              else {
+//                  res = sizeof(uint16_t);
+//              }
+//          }
+//          break;
+
+//      case NETOPT_TX_POWER:
+//          if (len > sizeof(int16_t)) {
+//              res = -EOVERFLOW;
+//          }
+//          else {
+//              ata8510_set_txpower(dev, *((int16_t *)val));
+//              res = sizeof(uint16_t);
+//          }
+//          break;
+
+        case NETOPT_STATE:
+            if (len > sizeof(netopt_state_t)) {
+                res = -EOVERFLOW;
+            }
+            else {
+                res = _set_state(dev, *((netopt_state_t *)val));
+            }
+            break;
+
+//      case NETOPT_AUTOACK:
+//          ata8510_set_option(dev, ATA8510_OPT_AUTOACK,
+//                               ((bool *)val)[0]);
+//          /* don't set res to set netdev2_ieee802154_t::flags */
+//          break;
+
+//      case NETOPT_RETRANS:
+//          if (len > sizeof(uint8_t)) {
+//              res = -EOVERFLOW;
+//          }
+//          else {
+//              ata8510_set_max_retries(dev, *((uint8_t *)val));
+//              res = sizeof(uint8_t);
+//          }
+//          break;
+
+//      case NETOPT_PRELOADING:
+//          ata8510_set_option(dev, ATA8510_OPT_PRELOADING,
+//                               ((bool *)val)[0]);
+//          res = sizeof(netopt_enable_t);
+//          break;
+
+//      case NETOPT_PROMISCUOUSMODE:
+//          ata8510_set_option(dev, ATA8510_OPT_PROMISCUOUS,
+//                               ((bool *)val)[0]);
+//          res = sizeof(netopt_enable_t);
+//          break;
+
+//      case NETOPT_RX_START_IRQ:
+//          ata8510_set_option(dev, ATA8510_OPT_TELL_RX_START,
+//                               ((bool *)val)[0]);
+//          res = sizeof(netopt_enable_t);
+//          break;
+
+//      case NETOPT_RX_END_IRQ:
+//          ata8510_set_option(dev, ATA8510_OPT_TELL_RX_END,
+//                               ((bool *)val)[0]);
+//          res = sizeof(netopt_enable_t);
+//          break;
+
+//      case NETOPT_TX_START_IRQ:
+//          ata8510_set_option(dev, ATA8510_OPT_TELL_TX_START,
+//                               ((bool *)val)[0]);
+//          res = sizeof(netopt_enable_t);
+//          break;
+
+//      case NETOPT_TX_END_IRQ:
+//          ata8510_set_option(dev, ATA8510_OPT_TELL_TX_END,
+//                               ((bool *)val)[0]);
+//          res = sizeof(netopt_enable_t);
+//          break;
+
+//      case NETOPT_CSMA:
+//          ata8510_set_option(dev, ATA8510_OPT_CSMA,
+//                               ((bool *)val)[0]);
+//          res = sizeof(netopt_enable_t);
+//          break;
+
+//      case NETOPT_CSMA_RETRIES:
+//          if ((len > sizeof(uint8_t)) ||
+//              (*((uint8_t *)val) > 5)) {
+//              res = -EOVERFLOW;
+//          }
+//          else if (dev->netdev.flags & ATA8510_OPT_CSMA) {
+//              /* only set if CSMA is enabled */
+//              ata8510_set_csma_max_retries(dev, *((uint8_t *)val));
+//              res = sizeof(uint8_t);
+//          }
+//          break;
+
+//      case NETOPT_CCA_THRESHOLD:
+//          if (len > sizeof(int8_t)) {
+//              res = -EOVERFLOW;
+//          }
+//          else {
+//              ata8510_set_cca_threshold(dev, *((int8_t *)val));
+//              res = sizeof(int8_t);
+//          }
+//          break;
+
+        default:
+            break;
+    }
+
+//  /* go back to original state if were not idle and state hasn't been changed */
+//  if ((old_state != ATA8510_STATE_IDLE) &&
+//      (opt != NETOPT_STATE)) {
+//      ata8510_set_state(dev, old_state);
+//  }
+
+    if (res == -ENOTSUP) {
+        res = netdev2_ieee802154_set((netdev2_ieee802154_t *)netdev, opt,
+                                     val, len);
+    }
+
     return res;
 }
 
