@@ -214,6 +214,7 @@ size_t ata8510_tx_load(ata8510_t *dev, uint8_t *data,
     if (n != len){
 	    DEBUG("ata8510_tx_load: tx buffer overflow\n");
     }
+	DEBUG("tx_load: offset+n = %d\n",offset+n);
 	return offset + n;
 }
 

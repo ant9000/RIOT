@@ -62,15 +62,6 @@ void ata8510_power_on(const ata8510_t *dev);
 void ata8510_force_trx_off(const ata8510_t *dev);
 
 /**
- * @brief   Convenience function for reading the status of the given device
- *
- * @param[in] dev       device to read the status from
- *
- * @return              internal status of the given device
- */
-uint8_t ata8510_get_status(const ata8510_t *dev);
-
-/**
  * @brief   Make sure that device is not sleeping
  *
  * @param[in] dev       device to eventually wake up

@@ -59,11 +59,6 @@ void ata8510_power_on(const ata8510_t *dev){
     xtimer_usleep(310);
 }
 
-uint8_t ata8510_get_status(const ata8510_t *dev)
-{
-    return 0;
-}
-
 void ata8510_assert_awake(ata8510_t *dev)
 {
 }

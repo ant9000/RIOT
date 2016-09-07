@@ -223,7 +223,7 @@ static int _set_state(ata8510_t *dev, netopt_state_t state)
 
 netopt_state_t _get_state(ata8510_t *dev)
 {
-    switch (ata8510_get_status(dev)) {
+    switch (ata8510_get_state(dev)) {
         case ATA8510_STATE_IDLE:
             return NETOPT_STATE_SLEEP;
         case ATA8510_STATE_POLLING:
@@ -272,7 +272,7 @@ static int _get(netdev2_t *netdev, netopt_t opt, void *val, size_t max_len)
         return res;
     }
 
-    uint8_t old_state = ata8510_get_status(dev);
+    uint8_t old_state = ata8510_get_state(dev);
     res = 0;
 
     /* temporarily switch to IDLE state */
@@ -432,7 +432,6 @@ static void _isr(netdev2_t *netdev){
     if (dfifo_rx_len) {
        DEBUG("_isr: DFIFO_RX len=%d\n", dfifo_rx_len);
     }
-    DEBUG("\n");
 
     // EOTA event
 	if (status[ATA8510_EVENTS] & ATA8510_EVENTS_EOTA) {
@@ -458,6 +457,7 @@ static void _isr(netdev2_t *netdev){
                          DEBUG("_isr: Cannot handle state %d after TX\n", mynextstate8510);
                          break;
                 }
+                DEBUG("_isr: new state after TX: %d\n", ata8510_get_state(dev));
                 dev->pending_tx = 0;
                 break;
 		    case ATA8510_STATE_POLLING:
@@ -475,4 +475,6 @@ static void _isr(netdev2_t *netdev){
 		        break;
         }
     }
+
+    DEBUG("\n");
 }
