@@ -501,10 +501,10 @@ DEBUG("_set: opt=%d\n", opt);
 //      ata8510_set_state(dev, old_state);
 //  }
 
-    if (res == -ENOTSUP) {
-        res = netdev2_ieee802154_set((netdev2_ieee802154_t *)netdev, opt,
-                                     val, len);
-    }
+//  if (res == -ENOTSUP) {
+//      res = netdev2_ieee802154_set((netdev2_ieee802154_t *)netdev, opt,
+//                                   val, len);
+//  }
 
     return res;
 }
