@@ -67,11 +67,14 @@
 #define MAXYARMTX 5     // max permitted value is 9 for now
 #include "checksum/fletcher16.h"
 
+#ifdef THREADCHECKRXERRORS
+void my_recv(netdev2_t *dev);
+#endif
+
 static char stack[_STACKSIZE];
 static kernel_pid_t _recv_pid;
 
 ata8510_t devs[ATA8510_NUM];
-static uint8_t buffer[ATA8510_MAX_PKT_LENGTH];
 
 static const shell_command_t shell_commands[] = {
     { "ifconfig", "Configure netdev2", ifconfig },
@@ -97,7 +100,11 @@ static void _event_cb(netdev2_t *dev, netdev2_event_t event)
     else {
         switch (event) {
             case NETDEV2_EVENT_RX_COMPLETE:
+#ifdef THREADCHECKRXERRORS
+                my_recv(dev);
+#else
                 recv(dev);
+#endif
                 break;
             default:
                 puts("Unexpected event received");
@@ -121,6 +128,78 @@ void *_recv_thread(void *arg)
     }
 }
 
+// ------------------------------------------------------------------------------
+
+
+#ifdef THREADTXRAND
+#include "random.h"
+#define RAND_SEED 0xC0FFEE
+
+void *thread_tx_rand(void *arg)     // Still has a problem on the very first message sent: the sniffing is returning zeroes. To be fixed..
+{
+    // Transmit  a message every .... seconds where first byte is ID8510, then 6 bytes as counter of transmissions sent.
+    ata8510_t *dev = &devs[0]; // acquires the 8510 device handle
+    int numtx = 1;  // counter for trasmissions
+    char msg[ATA8510_MAX_PKT_LENGTH+1];
+    char msg2[16];
+    uint32_t time_between_tx;
+    uint8_t checksum;
+    uint32_t last_wakeup = xtimer_now();
+    uint8_t myturn;
+    uint8_t i, n;
+    struct iovec vector[1];
+
+    printf("thread tx rand, pid: %" PRIkernel_pid "\n", thread_getpid());
+    random_init(RAND_SEED);
+
+    time_between_tx = 1000000U;
+    while (1) {
+        xtimer_periodic_wakeup(&last_wakeup, time_between_tx);
+        printf("state: %d\n", ata8510_get_state(dev));
+
+        sprintf(msg2, "%d%06d_", ID8510, numtx);
+        checksum = fletcher16((const uint8_t*)msg2, strlen(msg2));
+        sprintf(msg, "%s%02x", msg2, checksum);
+        n = strlen(msg);
+        for(i=n;i<ATA8510_MAX_PKT_LENGTH-1;i++){ msg[i] = 'A' + (numtx - 1 + i - n) % 26; }
+        msg[ATA8510_MAX_PKT_LENGTH-1]='.';
+        msg[ATA8510_MAX_PKT_LENGTH]=0; // terminate msg (just needed for printf)
+        numtx++;
+        printf("Sending %d bytes:\n%s\n", ATA8510_MAX_PKT_LENGTH, msg);
+
+        // test listen before talk
+        do {
+            while (!ata8510_cca(dev)) {
+                xtimer_usleep(100);
+            }
+            myturn = 1;
+            // after the end of other transmission, sense channel for a random number of times + 2
+            // if someone else took control, restart waiting with first loop, otherwise start transmit
+            for (i=0; i<(((random_uint32() % 10)+2)*2); i++) {
+                if (!ata8510_cca(dev)) { // if sensing channel occupied abort second loop and restart first loop of sensing
+                    myturn = 0;
+                    break;
+                }
+            }
+        } while (myturn == 0);
+
+        vector[0].iov_base = msg;
+        vector[0].iov_len = ATA8510_MAX_PKT_LENGTH;
+        ((netdev2_t *)dev)->driver->send((netdev2_t *)dev, vector, 1);
+
+        time_between_tx = 5000000U;
+        //time_between_tx = 1000000U + (random_uint32() % 3000000 ); // between 1 and 4 s
+        last_wakeup = xtimer_now();
+   }
+
+    return NULL;
+}
+
+char thread_tx_rand_stack[THREAD_STACKSIZE_MAIN];
+#endif
+
+#ifdef THREADCHECKRXERRORS
+static uint8_t buffer[ATA8510_MAX_PKT_LENGTH];
 
 int rxcounter[MAXYARMTX+1];  // YARM TX ID start from 1
 int rxerrors[MAXYARMTX+1];    // YARM TX ID start from 1
@@ -129,7 +208,7 @@ int rxfirstreceived[MAXYARMTX+1];  // marker for first message received or not
 int tot_messages = 0;
 int tot_restarts = 0;
 
-void recv(netdev2_t *dev)
+void my_recv(netdev2_t *dev)
 {
     size_t data_len;
     netdev2_ieee802154_rx_info_t rx_info;
@@ -226,78 +305,6 @@ void recv(netdev2_t *dev)
     }
     DEBUG("\n\n");
 }
-// ------------------------------------------------------------------------------
-
-
-#ifdef THREADTXRAND
-#include "random.h"
-#define RAND_SEED 0xC0FFEE
-
-void *thread_tx_rand(void *arg)     // Still has a problem on the very first message sent: the sniffing is returning zeroes. To be fixed..
-{
-    // Transmit  a message every .... seconds where first byte is ID8510, then 6 bytes as counter of transmissions sent.
-    ata8510_t *dev = &devs[0]; // acquires the 8510 device handle
-    int numtx = 1;  // counter for trasmissions
-    char msg[ATA8510_MAX_PKT_LENGTH+1];
-    char msg2[16];
-    uint32_t time_between_tx;
-    uint8_t checksum;
-    uint32_t last_wakeup = xtimer_now();
-    uint8_t myturn;
-    uint8_t i, n;
-    struct iovec vector[1];
-
-    printf("thread tx rand, pid: %" PRIkernel_pid "\n", thread_getpid());
-    random_init(RAND_SEED);
-
-    time_between_tx = 1000000U;
-    while (1) {
-        xtimer_periodic_wakeup(&last_wakeup, time_between_tx);
-        printf("state: %d\n", ata8510_get_state(dev));
-
-        sprintf(msg2, "%d%06d_", ID8510, numtx);
-        checksum = fletcher16((const uint8_t*)msg2, strlen(msg2));
-        sprintf(msg, "%s%02x", msg2, checksum);
-        n = strlen(msg);
-        for(i=n;i<ATA8510_MAX_PKT_LENGTH-1;i++){ msg[i] = 'A' + (numtx - 1 + i - n) % 26; }
-        msg[ATA8510_MAX_PKT_LENGTH-1]='.';
-        msg[ATA8510_MAX_PKT_LENGTH]=0; // terminate msg (just needed for printf)
-        numtx++;
-        printf("Sending %d bytes:\n%s\n", ATA8510_MAX_PKT_LENGTH, msg);
-
-        // test listen before talk
-        do {
-            while (!ata8510_cca(dev)) {
-                xtimer_usleep(100);
-            }
-            myturn = 1;
-            // after the end of other transmission, sense channel for a random number of times + 2
-            // if someone else took control, restart waiting with first loop, otherwise start transmit
-            for (i=0; i<(((random_uint32() % 10)+2)*2); i++) {
-                if (!ata8510_cca(dev)) { // if sensing channel occupied abort second loop and restart first loop of sensing
-                    myturn = 0;
-                    break;
-                }
-            }
-        } while (myturn == 0);
-
-        vector[0].iov_base = msg;
-        vector[0].iov_len = ATA8510_MAX_PKT_LENGTH;
-        ((netdev2_t *)dev)->driver->send((netdev2_t *)dev, vector, 1);
-
-        time_between_tx = 5000000U;
-        //time_between_tx = 1000000U + (random_uint32() % 3000000 ); // between 1 and 4 s
-        last_wakeup = xtimer_now();
-   }
-
-    return NULL;
-}
-
-char thread_tx_rand_stack[THREAD_STACKSIZE_MAIN];
-#endif
-
-#ifdef THREADCHECKRXERRORS
-
 void *thread_check_rx_errors(void *arg)
 {
     int i;
@@ -368,8 +375,9 @@ int main(void)
         ata8510_setup(&devs[i], (ata8510_params_t*) p);
         dev->event_callback = _event_cb;
         dev->driver->init(dev);
+        ata8510_set_state((ata8510_t *)dev, ATA8510_STATE_POLLING);
+        ata8510_set_state_after_tx((ata8510_t *)dev, ATA8510_STATE_POLLING);
     }
-    ata8510_t *dev = &devs[0]; // acquires the 8510 device handle
 
     _recv_pid = thread_create(stack, sizeof(stack), THREAD_PRIORITY_MAIN - 1,
                               THREAD_CREATE_STACKTEST, _recv_thread, NULL,
@@ -380,18 +388,6 @@ int main(void)
         return 1;
     }
 
-    // zero errors and counter current tx value for each YARM Tx
-    for (int i=0; i<MAXYARMTX+1; i++) {
-        rxcounter[i] = 0;
-        rxerrors[i] = 0;
-        msgcounter[i] = 0;
-        rxfirstreceived[i] = 0;
-    }
-
-    int ramdata = ata8510_read_sram_register(dev, 0x294);
-    printf("0x294 = %02x\n",ramdata);
-    ata8510_set_state(dev, ATA8510_STATE_POLLING);
-
 #ifdef THREADTXRAND
     printf("[main] Starting tx rand thread...\n");
     thread_create(thread_tx_rand_stack, sizeof(thread_tx_rand_stack),
@@ -400,6 +396,14 @@ int main(void)
 #endif
 
 #ifdef THREADCHECKRXERRORS
+    // zero errors and counter current tx value for each YARM Tx
+    for (int i=0; i<MAXYARMTX+1; i++) {
+        rxcounter[i] = 0;
+        rxerrors[i] = 0;
+        msgcounter[i] = 0;
+        rxfirstreceived[i] = 0;
+    }
+
     printf("[main] Starting check rx errors thread...\n");
     thread_create(thread_check_rx_errors_stack, sizeof(thread_check_rx_errors_stack),
                             THREAD_PRIORITY_MAIN - 1, THREAD_CREATE_STACKTEST,

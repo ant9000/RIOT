@@ -27,7 +27,7 @@ USEMODULE += checksum
 
 CFLAGS += -DDEVELHELP
 
-RX ?= 1
+RX ?= 0
 TX ?= 0
 ifeq ($(TX),1)
   RX = 0
@@ -35,6 +35,7 @@ ifeq ($(TX),1)
   CFLAGS += -DTHREADTXRAND -DID8510=$(ID8510)
 endif
 ifeq ($(RX),1)
+  TX = 0
   CFLAGS += -DTHREADCHECKRXERRORS
 endif
 
