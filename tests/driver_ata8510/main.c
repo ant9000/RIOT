@@ -374,8 +374,7 @@ int main(void)
         ata8510_setup(&devs[i], (ata8510_params_t*) p);
         dev->event_callback = _event_cb;
         dev->driver->init(dev);
-        ata8510_set_state((ata8510_t *)dev, ATA8510_STATE_POLLING);
-        ata8510_set_state_after_tx((ata8510_t *)dev, ATA8510_STATE_POLLING);
+        printf("STATE: %d\n", ata8510_get_state(&devs[i]));
     }
 
     _recv_pid = thread_create(stack, sizeof(stack), THREAD_PRIORITY_MAIN - 1,
