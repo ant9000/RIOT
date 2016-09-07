@@ -67,9 +67,7 @@
 #define MAXYARMTX 5     // max permitted value is 9 for now
 #include "checksum/fletcher16.h"
 
-#ifdef THREADCHECKRXERRORS
 void my_recv(netdev2_t *dev);
-#endif
 
 static char stack[_STACKSIZE];
 static kernel_pid_t _recv_pid;
@@ -100,7 +98,7 @@ static void _event_cb(netdev2_t *dev, netdev2_event_t event)
     else {
         switch (event) {
             case NETDEV2_EVENT_RX_COMPLETE:
-#ifdef THREADCHECKRXERRORS
+#if THREADCHECKRXERRORS || THREADTXRAND
                 my_recv(dev);
 #else
                 recv(dev);
@@ -198,7 +196,6 @@ void *thread_tx_rand(void *arg)     // Still has a problem on the very first mes
 char thread_tx_rand_stack[THREAD_STACKSIZE_MAIN];
 #endif
 
-#ifdef THREADCHECKRXERRORS
 static uint8_t buffer[ATA8510_MAX_PKT_LENGTH];
 
 int rxcounter[MAXYARMTX+1];  // YARM TX ID start from 1
@@ -305,6 +302,8 @@ void my_recv(netdev2_t *dev)
     }
     DEBUG("\n\n");
 }
+
+#ifdef THREADCHECKRXERRORS
 void *thread_check_rx_errors(void *arg)
 {
     int i;
