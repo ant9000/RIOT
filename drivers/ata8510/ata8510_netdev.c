@@ -32,14 +32,11 @@
 #include "ata8510_netdev.h"
 #include "ata8510_internal.h"
 #include "xtimer.h"
-#include "mutex.h"
 
 #define ENABLE_DEBUG (0)
 #include "debug.h"
 
 #define _MAX_MHR_OVERHEAD   (25)
-
-static mutex_t mutex = MUTEX_INIT;
 
 static int _send(netdev2_t *netdev, const struct iovec *vector, unsigned count);
 static int _recv(netdev2_t *netdev, void *buf, size_t len, void *info);
@@ -111,6 +108,7 @@ static int _send(netdev2_t *netdev, const struct iovec *vector, unsigned count)
 
     if (dev->pending_tx) {
         DEBUG("_send: error: pending transmissiong\n");
+        netdev->event_callback(netdev, NETDEV2_EVENT_TX_MEDIUM_BUSY);
         return -EOVERFLOW;
     }
     dev->pending_tx = 1;
@@ -132,19 +130,16 @@ static int _send(netdev2_t *netdev, const struct iovec *vector, unsigned count)
     // activate tx mode 
     ata8510_set_state(dev, ATA8510_STATE_TX_ON);
 
-    // send message
-    while(!ringbuffer_empty(&dev->rb)) {
-        n = ata8510_ReadFillLevelTxFIFO(dev);
-        if (n < ATA8510_DFIFO_TX_LENGTH) { // DFIFO_TX has free space
-            n = ringbuffer_get(&dev->rb, (char *)data, ATA8510_DFIFO_TX_LENGTH - n);
-            if (n) {
-                DEBUG("_send: batch %d bytes\n", n);
-                ata8510_WriteTxFifo(dev, n, data);
-                mutex_lock(&mutex); // unlocked by isr()
-            }
+    // send first bytes of message until FIFO is full
+    n = ata8510_ReadFillLevelTxFIFO(dev);
+    if (n < ATA8510_DFIFO_TX_LENGTH) { // DFIFO_TX has free space
+        n = ringbuffer_get(&dev->rb, (char *)data, ATA8510_DFIFO_TX_LENGTH - n);
+        if (n) {
+            DEBUG("_send: first batch %d of %d bytes\n", n, len);
+            ata8510_WriteTxFifo(dev, n, data);
         }
     }
-    DEBUG("_send: sent %d bytes\n", len);
+
 #ifdef MODULE_NETSTATS_L2
     netdev->stats.tx_bytes += len;
 #endif
@@ -571,7 +566,17 @@ static void _isr(netdev2_t *netdev){
 	    (status[ATA8510_EVENTS] & ATA8510_EVENTS_EOTA)        // EOTA event
     ) {
         if(mystate8510==ATA8510_STATE_TX_ON){
+/*
             mutex_unlock(&mutex); // unlock send()
+*/
+            n = ata8510_ReadFillLevelTxFIFO(dev);
+            if (n < ATA8510_DFIFO_TX_LENGTH) { // DFIFO_TX has free space
+                n = ringbuffer_get(&dev->rb, (char *)data, ATA8510_DFIFO_TX_LENGTH - n);
+                if (n) {
+                    DEBUG("_send: batch %d bytes\n", n);
+                    ata8510_WriteTxFifo(dev, n, data);
+                }
+            }
         }
 	}
 
@@ -600,6 +605,7 @@ static void _isr(netdev2_t *netdev){
                     );
                     ringbuffer_remove(&dev->rb, dev->rb.avail);
                 }
+                dev->pending_tx = 0;
 
                 ata8510_set_state(dev, ATA8510_STATE_IDLE);
                 switch (mynextstate8510) {
@@ -613,7 +619,9 @@ static void _isr(netdev2_t *netdev){
                          break;
                 }
                 dev->pending_tx = 0;
+                netdev->event_callback(netdev, NETDEV2_EVENT_TX_COMPLETE);
                 break;
+
 		    case ATA8510_STATE_POLLING:
                 dev->service = ATA8510_CONFIG_SERVICE(status[ATA8510_CONFIG]);
                 dev->channel = ATA8510_CONFIG_CHANNEL(status[ATA8510_CONFIG]);
@@ -631,7 +639,7 @@ static void _isr(netdev2_t *netdev){
     }
 
 #if ENABLE_DEBUG
-    DEBUG("_isr: state: %d\n", mystate8510);
+    DEBUG("_isr: state: %d pending_tx: %d\n", mystate8510, dev->pending_tx);
     DEBUG(
         "_isr: Get Event Bytes: %02x %02x %02x %02x\n",
         status[0], status[1], status[2], status[3]

@@ -154,6 +154,7 @@ void ata8510_set_option(ata8510_t *dev, uint16_t option, bool state)
 
 void ata8510_set_state(ata8510_t *dev, uint8_t state)
 {
+    DEBUG("ata8510_set_state(%d)\n", state);
     switch (state) {
         case ATA8510_STATE_IDLE:
 	        ata8510_SetIdleMode(dev);
