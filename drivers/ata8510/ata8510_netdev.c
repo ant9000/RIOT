@@ -107,7 +107,7 @@ static int _send(netdev2_t *netdev, const struct iovec *vector, unsigned count)
     int n;
 
     if (dev->pending_tx) {
-        DEBUG("_send: error: pending transmissiong\n");
+        DEBUG("_send: error: pending transmission\n");
         netdev->event_callback(netdev, NETDEV2_EVENT_TX_MEDIUM_BUSY);
         return -EOVERFLOW;
     }
@@ -618,7 +618,7 @@ static void _isr(netdev2_t *netdev){
                          DEBUG("_isr: Cannot handle state %d after TX\n", mynextstate8510);
                          break;
                 }
-                dev->pending_tx = 0;
+
                 netdev->event_callback(netdev, NETDEV2_EVENT_TX_COMPLETE);
                 break;
 
