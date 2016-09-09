@@ -122,6 +122,7 @@ static int _send(netdev2_t *netdev, const struct iovec *vector, unsigned count)
         if ((len + ptr->iov_len) > ATA8510_MAX_PKT_LENGTH) {
             DEBUG("_send: packet too large (%u byte) to be sent\n",
                   (unsigned)len);
+            dev->pending_tx = 0;
             return -EOVERFLOW;
         }
         len = ata8510_tx_load(dev, ptr->iov_base, ptr->iov_len, len);
