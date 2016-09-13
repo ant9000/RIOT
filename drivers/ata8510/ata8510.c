@@ -136,7 +136,7 @@ void ata8510_reset(ata8510_t *dev)
 //    /* go into RX state */
 //    ata8510_set_state(dev, ATA8510_STATE_RX_AACK_ON);
 
-    dev->service = 0;
+    dev->service = 2;
     dev->channel = 0;
     dev->idle_state = ATA8510_STATE_POLLING;
     dev->pending_tx = 0;
@@ -153,7 +153,7 @@ bool ata8510_cca(ata8510_t *dev)
     bool channel_clear;
 
     ata8510_write_sram_register(dev, 0x294, 0x27);  // set RSSI polling to 9 (6.8ms) to enable fast sniffing
-    ata8510_StartRSSI_Measurement(dev, 0, 0);       // start RSSI measure; 0,0 are service and channel
+    ata8510_StartRSSI_Measurement(dev, dev->service, dev->channel); // start RSSI measure
     xtimer_usleep(6000);
     ata8510_GetRSSI_Value(dev, data);
     ata8510_write_sram_register(dev, 0x294, 0x2b);  // set RSSI polling back to 11 (27.1ms) to avoid SFIFO
