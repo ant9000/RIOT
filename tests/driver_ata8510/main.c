@@ -92,20 +92,29 @@ static void _event_cb(netdev2_t *dev, netdev2_event_t event)
 
         if (msg_send(&msg, _recv_pid) <= 0) {
             lost_interrupts++;
-            puts("_isr gnrc_netdev2: possibly lost interrupt.");
+            puts("event_cb gnrc_netdev2: possibly lost interrupt.");
         }
     }
     else {
         switch (event) {
             case NETDEV2_EVENT_RX_COMPLETE:
-#if THREADCHECKRXERRORS || THREADTXRAND
+#if THREADCHECKRXERRORS
                 my_recv(dev);
+#else
+#if THREADTXRAND
 #else
                 recv(dev);
 #endif
+#endif
+                break;
+            case NETDEV2_EVENT_TX_MEDIUM_BUSY:
+                puts("event_cb gnrc_netdev2: transfer still pending.");
+                break;
+            case NETDEV2_EVENT_TX_COMPLETE:
+                puts("event_cb gnrc_netdev2: transfer complete.");
                 break;
             default:
-                puts("Unexpected event received");
+                printf("Unexpected event received %d\n", event);
                 break;
         }
     }
@@ -154,6 +163,7 @@ void *thread_tx_rand(void *arg)     // Still has a problem on the very first mes
     while (1) {
         xtimer_periodic_wakeup(&last_wakeup, time_between_tx);
         printf("state: %d\n", ata8510_get_state(dev));
+        dev->service = (dev->service ? 0 : 2); // alternate between service 0 and 2
 
         sprintf(msg2, "%d%06d_", ID8510, numtx);
         checksum = fletcher16((const uint8_t*)msg2, strlen(msg2));
@@ -163,7 +173,7 @@ void *thread_tx_rand(void *arg)     // Still has a problem on the very first mes
         msg[ATA8510_MAX_PKT_LENGTH-1]='.';
         msg[ATA8510_MAX_PKT_LENGTH]=0; // terminate msg (just needed for printf)
         numtx++;
-        printf("Sending %d bytes:\n%s\n", ATA8510_MAX_PKT_LENGTH, msg);
+        printf("Sending %d bytes using service %d:\n%s\n", ATA8510_MAX_PKT_LENGTH, dev->service, msg);
 
         // test listen before talk
         do {
@@ -218,7 +228,12 @@ void my_recv(netdev2_t *dev)
 
     data_len = dev->driver->recv(dev, buffer, sizeof(buffer), &rx_info);
 #if ENABLE_DEBUG
-    DEBUG("RECV %d bytes:\n", data_len);
+    DEBUG(
+        "RECV %d bytes on service %d, channel %d:\n",
+        data_len,
+        ((ata8510_t *)dev)->service,
+        ((ata8510_t *)dev)->channel
+    );
     od_hex_dump(buffer, data_len, 0);
     DEBUG("txt:\n     ");
     for (i = 0; i < data_len; i++) {

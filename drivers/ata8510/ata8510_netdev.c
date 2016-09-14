@@ -191,7 +191,10 @@ static int _recv(netdev2_t *netdev, void *buf, size_t len, void *info)
     ringbuffer_get(&dev->rb, (char *)buf, pkt_len);
 
 #if ENABLE_DEBUG
-    DEBUG("_recv: pkt_len=%d, data=[", pkt_len);
+    DEBUG(
+        "_recv: service=%d, channel=%d, pkt_len=%d, data=[", 
+        dev->service, dev->channel, pkt_len
+    );
     for (i=0; i<pkt_len; i++) {
         if ((i%16) == 0) DEBUG("\n\t");
         DEBUG(" %02x", ((char *)buf)[i]);
