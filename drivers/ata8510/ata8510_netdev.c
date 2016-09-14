@@ -106,6 +106,18 @@ static int _send(netdev2_t *netdev, const struct iovec *vector, unsigned count)
     uint8_t data[ATA8510_DFIFO_TX_LENGTH];
     int n;
 
+#if ENABLE_DEBUG
+    DEBUG("_send: data=[");
+    unsigned c=0;
+    for (unsigned i=0; i<count; i++) {
+        for (unsigned j=0; j<vector[i].iov_len; j++) {
+            if ((c++%16) == 0) DEBUG("\n\t");
+            DEBUG(" %02x", ((char *)vector[i].iov_base)[j]);
+        }
+    }
+    DEBUG("\n], len=%d\n", c);
+#endif
+
     if (dev->pending_tx) {
         DEBUG("_send: error: pending transmission\n");
         netdev->event_callback(netdev, NETDEV2_EVENT_TX_MEDIUM_BUSY);
@@ -136,7 +148,9 @@ static int _send(netdev2_t *netdev, const struct iovec *vector, unsigned count)
     if (n < ATA8510_DFIFO_TX_LENGTH) { // DFIFO_TX has free space
         n = ringbuffer_get(&dev->rb, (char *)data, ATA8510_DFIFO_TX_LENGTH - n);
         if (n) {
+#if ENABLE_DEBUG > 1
             DEBUG("_send: first batch %d of %d bytes\n", n, len);
+#endif
             ata8510_WriteTxFifo(dev, n, data);
         }
     }
@@ -176,7 +190,14 @@ static int _recv(netdev2_t *netdev, void *buf, size_t len, void *info)
     /* copy payload */
     ringbuffer_get(&dev->rb, (char *)buf, pkt_len);
 
-	DEBUG("_recv: pkt_len=%d\n", pkt_len);
+#if ENABLE_DEBUG
+    DEBUG("_recv: pkt_len=%d, data=[", pkt_len);
+    for (i=0; i<pkt_len; i++) {
+        if ((i%16) == 0) DEBUG("\n\t");
+        DEBUG(" %02x", ((char *)buf)[i]);
+    }
+    DEBUG("\n]\n");
+#endif
 
     if (info != NULL) {
         netdev2_ieee802154_rx_info_t *radio_info = info;
@@ -186,7 +207,9 @@ static int _recv(netdev2_t *netdev, void *buf, size_t len, void *info)
         if (dev->RSSI_len > 0) {
             for (i=0; i<dev->RSSI_len; i++) { rssicalc+=dev->RSSI[i]; }
             radio_info->rssi = rssicalc/dev->RSSI_len;
+#if ENABLE_DEBUG > 1
             DEBUG("_recv: RSSI values = %d RSSI = %d \n", dev->RSSI_len, radio_info->rssi);
+#endif
         } else {
             DEBUG("_recv: no RSSI values read\n");
         }
@@ -567,14 +590,13 @@ static void _isr(netdev2_t *netdev){
 	    (status[ATA8510_EVENTS] & ATA8510_EVENTS_EOTA)        // EOTA event
     ) {
         if(mystate8510==ATA8510_STATE_TX_ON){
-/*
-            mutex_unlock(&mutex); // unlock send()
-*/
             n = ata8510_ReadFillLevelTxFIFO(dev);
             if (n < ATA8510_DFIFO_TX_LENGTH) { // DFIFO_TX has free space
                 n = ringbuffer_get(&dev->rb, (char *)data, ATA8510_DFIFO_TX_LENGTH - n);
                 if (n) {
+#if ENABLE_DEBUG > 1
                     DEBUG("_send: batch %d bytes\n", n);
+#endif
                     ata8510_WriteTxFifo(dev, n, data);
                 }
             }
@@ -619,6 +641,7 @@ static void _isr(netdev2_t *netdev){
                          DEBUG("_isr: Cannot handle state %d after TX\n", mynextstate8510);
                          break;
                 }
+                DEBUG("_isr: TX end\n");
 
                 netdev->event_callback(netdev, NETDEV2_EVENT_TX_COMPLETE);
                 break;
@@ -639,7 +662,7 @@ static void _isr(netdev2_t *netdev){
         }
     }
 
-#if ENABLE_DEBUG
+#if ENABLE_DEBUG > 1
     DEBUG("_isr: state: %d pending_tx: %d\n", mystate8510, dev->pending_tx);
     DEBUG(
         "_isr: Get Event Bytes: %02x %02x %02x %02x\n",
@@ -660,14 +683,14 @@ static void _isr(netdev2_t *netdev){
         (status[ATA8510_EVENTS] & ATA8510_EVENTS_EOTA     ? 1 : 0)
     );
     if (errorcode) {
-		DEBUG("_isr: SysErr=%d  SSM state= %d\n", errorcode>>8, errorcode&0xff);
+		DEBUG("_isr: SysErr=%d  SSM state=%d\n", errorcode>>8, errorcode&0xff);
     }
     if (sfifo_len) {
-       DEBUG("_isr: SFIFO len=%d data=[ ", sfifo_len);
-       for (i=0; i<sfifo_len; i++) DEBUG(" %d", dataSFIFO[i+3]);
+       DEBUG("_isr: SFIFO len=%d data=[", sfifo_len);
+       for (i=0; i<sfifo_len; i++) DEBUG(" %02x", dataSFIFO[i+3]);
        DEBUG(" ]\n");
-       DEBUG("_isr: RSSI len=%d data=[ ", dev->RSSI_len);
-       for (i=0; i<dev->RSSI_len; i++) DEBUG(" %d", dev->RSSI[i]);
+       DEBUG("_isr: RSSI len=%d data=[", dev->RSSI_len);
+       for (i=0; i<dev->RSSI_len; i++) DEBUG(" %02x", dev->RSSI[i]);
        DEBUG(" ]\n");
     }
     if (dfifo_rx_len) {
