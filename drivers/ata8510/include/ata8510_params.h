@@ -106,7 +106,6 @@ static const ata8510_params_t ata8510_params[] =
 #define ATA8510_DATA_HEADER               ('D')
 #define ATA8510_DATA_HEADER_LEN           (1)
 #define ATA8510_CHECKSUM_LEN              (1)
-#define ATA8510_WriteTxPreambleBuffer_LEN (9)
 
                         // systemModeConfig:
 #define ATA8510_RF_RXPOLLINGMODE    (0x23)    // bit5 VCO tuning before changing OPM enabled,

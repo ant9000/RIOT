@@ -179,7 +179,7 @@ void ata8510_tx_prepare(ata8510_t *dev)
 	DEBUG("\n");
 
     // write TX preamble 
-	ata8510_WriteTxPreamble(dev, ATA8510_WriteTxPreambleBuffer_LEN, &TxPreambleBuffer[0]);
+	ata8510_WriteTxPreamble(dev, sizeof(TxPreambleBuffer), TxPreambleBuffer);
 	DEBUG("ata8510_WriteTxPreamble\n");
 
     // empty TX buffer
