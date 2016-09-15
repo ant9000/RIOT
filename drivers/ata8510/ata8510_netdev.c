@@ -622,9 +622,7 @@ static void _isr(netdev2_t *netdev){
             dfifo_rx_len = ata8510_ReadFillLevelRxFIFO(dev);
             if (dfifo_rx_len>0) { // there is data to read
                 ata8510_ReadRxFIFO(dev, dfifo_rx_len, data);
-                n = ringbuffer_add(&dev->rb, (char *)data+3, dfifo_rx_len);
-                if (n != dfifo_rx_len){ DEBUG("_isr: RX buffer overflow"); }
-
+                for (i=0;i<dfifo_rx_len;i++) { ringbuffer_add_one(&dev->rb, data[i+3]); }
             }
         }
 	}
