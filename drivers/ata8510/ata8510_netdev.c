@@ -615,6 +615,9 @@ static void _isr(netdev2_t *netdev){
     errorcode = 0;
 	if (status[ATA8510_SYSTEM] & ATA8510_SYSTEM_SYS_ERR) {
 		errorcode = ata8510_read_error_code(dev);
+#if ENABLE_DEBUG & DEBUG_ISR_EVENTS_TRX
+	    DEBUG("_isr: SysErr=%d  SSM state=%d\n", errorcode>>8, errorcode&0xff);
+#endif
         switch (errorcode>>8) {
             case 21: //DEBUG_ERROR_CODE_SFIFO_OVER_UNDER_FLOW
                 break;
@@ -702,7 +705,6 @@ static void _isr(netdev2_t *netdev){
         (status[ATA8510_EVENTS] & ATA8510_EVENTS_SOTA     ? 1 : 0),
         (status[ATA8510_EVENTS] & ATA8510_EVENTS_EOTA     ? 1 : 0)
     );
-	DEBUG("_isr: SysErr=%d  SSM state=%d\n", errorcode>>8, errorcode&0xff);
 #endif
 #if ENABLE_DEBUG & (DEBUG_ISR | DEBUG_PKT_DUMP) == (DEBUG_ISR | DEBUG_PKT_DUMP)
     if (sfifo_len) {
