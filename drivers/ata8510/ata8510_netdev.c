@@ -40,8 +40,7 @@
 #define DEBUG_SEND            0x10
 #define DEBUG_RECV            0x20
 
-//#define ENABLE_DEBUG      0 & (DEBUG_ISR_EVENTS_TRX | DEBUG_RECV | DEBUG_PKT_DUMP)
-#define ENABLE_DEBUG      (DEBUG_ISR_EVENTS)
+#define ENABLE_DEBUG      (DEBUG_ISR_EVENTS_TRX | DEBUG_RECV | DEBUG_PKT_DUMP)
 #include "debug.h"
 
 #define _MAX_MHR_OVERHEAD   (25)
