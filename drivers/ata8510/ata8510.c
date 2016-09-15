@@ -163,26 +163,6 @@ bool ata8510_cca(ata8510_t *dev)
     return channel_clear;
 }
 
-size_t ata8510_send(ata8510_t *dev, uint8_t *data, size_t len, uint8_t service, uint8_t channel, ata8510_state_t state_after_tx)
-{
-    ata8510_set_state(dev, ATA8510_STATE_IDLE);
-
-#if ENABLE_DEBUG
-	DEBUG("ata8510_send(\n\tlen=%d\n\tdata=[", len);
-    for(int i=0;i<len;i++){ DEBUG(" 0x%02x", data[i]); }
-    DEBUG(" ]\n\tservice=%d, channel=%d, next state=%d)\n", service, channel, state_after_tx);
-#endif
-
-	ata8510_tx_prepare(dev);
-	ata8510_tx_load(dev, data, len, 0);
-    dev->service = service;
-    dev->channel = channel;
-	ata8510_tx_exec(dev);
-	ata8510_set_state_after_tx(dev, state_after_tx);
-
-    return 0;
-}
-
 void ata8510_tx_prepare(ata8510_t *dev)
 {
 	uint8_t TxPreambleBuffer[]={0x04, 0x70, 0x8E, 0x0A, 0x55, 0x55, 0x10, 0x55, 0x56};

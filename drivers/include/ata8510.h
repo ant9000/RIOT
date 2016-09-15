@@ -538,20 +538,6 @@ uint8_t ata8510_get_state_after_tx(ata8510_t *dev);
 void ata8510_reset_state_machine(ata8510_t *dev);
 
 /**
- * @brief   Convenience function for simply sending data
- *
- * @note This function ignores the PRELOADING option
- *
- * @param[in] dev           device to use for sending
- * @param[in] data          data to send (must include IEEE802.15.4 header)
- * @param[in] len           length of @p data
- *
- * @return                  number of bytes that were actually send
- * @return                  0 on error
- */
-size_t ata8510_send(ata8510_t *dev, uint8_t *data, size_t len, uint8_t service, uint8_t channel, ata8510_state_t state_after_tx);
-
-/**
  * @brief   Prepare for sending of data
  *
  * This function puts the given device into the TX state, so no receiving of
