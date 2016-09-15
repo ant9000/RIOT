@@ -67,6 +67,9 @@
 #define MAXYARMTX 5     // max permitted value is 9 for now
 #include "checksum/fletcher16.h"
 
+#define RCV_QUEUE_SIZE  (2)
+static msg_t rcv_queue[RCV_QUEUE_SIZE];
+
 void my_recv(netdev2_t *dev);
 
 static char stack[_STACKSIZE];
@@ -102,6 +105,10 @@ static void _event_cb(netdev2_t *dev, netdev2_event_t event)
                 my_recv(dev);
 #else
 #if THREADTXRAND
+                printf(
+                    "event_cb gnrc_netdev2: received a packet on service %d, channel %d\n",
+                    ((ata8510_t *)dev)->service, ((ata8510_t *)dev)->channel
+                );
 #else
                 recv(dev);
 #endif
@@ -122,6 +129,7 @@ static void _event_cb(netdev2_t *dev, netdev2_event_t event)
 
 void *_recv_thread(void *arg)
 {
+    msg_init_queue(rcv_queue, RCV_QUEUE_SIZE);
     while (1) {
         msg_t msg;
         msg_receive(&msg);
@@ -195,7 +203,7 @@ void *thread_tx_rand(void *arg)     // Still has a problem on the very first mes
         vector[0].iov_len = ATA8510_MAX_PKT_LENGTH;
         ((netdev2_t *)dev)->driver->send((netdev2_t *)dev, vector, 1);
 
-        time_between_tx = 5000000U;
+        time_between_tx = (dev->service==2 ? 1 : 5 ) * SEC_IN_USEC;
         //time_between_tx = 1000000U + (random_uint32() % 3000000 ); // between 1 and 4 s
         last_wakeup = xtimer_now();
    }
