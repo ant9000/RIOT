@@ -173,6 +173,7 @@ void *thread_tx_rand(void *arg)     // Still has a problem on the very first mes
         printf("state: %d\n", ata8510_get_state(dev));
 //      dev->service = (dev->service ? 0 : 2); // alternate between service 0 and 2
         dev->service = 2;
+        dev->channel = 0;
 
         sprintf(msg2, "%d%06d_", ID8510, numtx);
         checksum = fletcher16((const uint8_t*)msg2, strlen(msg2));
