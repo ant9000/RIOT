@@ -40,7 +40,7 @@
 #define DEBUG_SEND            0x10
 #define DEBUG_RECV            0x20
 
-#define ENABLE_DEBUG      (DEBUG_ISR_EVENTS_TRX | DEBUG_RECV | DEBUG_PKT_DUMP)
+#define ENABLE_DEBUG      (DEBUG_ISR_EVENTS | DEBUG_ISR_EVENTS_TRX | DEBUG_RECV | DEBUG_PKT_DUMP)
 #include "debug.h"
 
 #define _MAX_MHR_OVERHEAD   (25)
@@ -557,7 +557,7 @@ static void _isr(netdev2_t *netdev){
 	if (status[ATA8510_SYSTEM] & ATA8510_SYSTEM_SYS_ERR) {
 		errorcode = ata8510_read_error_code(dev);
 #if ENABLE_DEBUG & DEBUG_ISR_EVENTS_TRX
-	    DEBUG("_isr: SysErr=%d  SSM state=%d\n", errorcode>>8, errorcode&0xff);
+	    DEBUG("_isr#%d: SysErr=%d  SSM state=%d\n", dev->interrupts, errorcode>>8, errorcode&0xff);
 #endif
         switch (errorcode>>8) {
             case 21: //DEBUG_ERROR_CODE_SFIFO_OVER_UNDER_FLOW
@@ -571,15 +571,15 @@ static void _isr(netdev2_t *netdev){
     // SOTA event
 	if (status[ATA8510_EVENTS] & ATA8510_EVENTS_SOTA) {
 #if ENABLE_DEBUG & DEBUG_ISR_EVENTS_TRX
-        DEBUG("_isr: SOTA, state=%d\n", mystate8510);
+        DEBUG("_isr#%d: SOTA, state=%d\n", dev->interrupts, mystate8510);
 #endif
 	    switch (mystate8510) {
             case ATA8510_STATE_POLLING:
                 // flush RX ringbuffer
                 if (!ringbuffer_empty(&dev->rb)) {
                     DEBUG(
-                        "_isr: RX start, discarding %d stale bytes from buffer\n",
-                        dev->rb.avail
+                        "_isr#%d: RX start, discarding %d stale bytes from buffer\n",
+                        dev->interrupts, dev->rb.avail
                     );
                     ringbuffer_remove(&dev->rb, dev->rb.avail);
                 }
@@ -638,7 +638,7 @@ static void _isr(netdev2_t *netdev){
                 n = ringbuffer_get(&dev->rb, (char *)data, ATA8510_DFIFO_TX_LENGTH - n);
                 if (n) {
 #if ENABLE_DEBUG & DEBUG_SEND
-                    DEBUG("_send: batch %d bytes\n", n);
+                    DEBUG("_isr#%d: send batch %d bytes\n", dev->interrupts, n);
 #endif
                     ata8510_WriteTxFifo(dev, n, data);
                 }
@@ -649,15 +649,15 @@ static void _isr(netdev2_t *netdev){
     // EOTA event
 	if (status[ATA8510_EVENTS] & ATA8510_EVENTS_EOTA) {
 #if ENABLE_DEBUG & DEBUG_ISR_EVENTS_TRX
-        DEBUG("_isr: EOTA, state=%d\n", mystate8510);
+        DEBUG("_isr#%d: EOTA, state=%d\n", dev->interrupts, mystate8510);
 #endif
 	    switch (mystate8510) {
             case ATA8510_STATE_TX_ON:
                 // flush TX ringbuffer
                 if (!ringbuffer_empty(&dev->rb)) {
                     DEBUG(
-                        "_isr: TX end, discarding %d stale bytes from buffer\n",
-                        dev->rb.avail
+                        "_isr#%d: TX end, discarding %d stale bytes from buffer\n",
+                        dev->interrupts, dev->rb.avail
                     );
                     ringbuffer_remove(&dev->rb, dev->rb.avail);
                 }
@@ -671,7 +671,7 @@ static void _isr(netdev2_t *netdev){
                         ata8510_set_state(dev, ATA8510_STATE_POLLING);
                         break;
                     default:
-                         DEBUG("_isr: Cannot handle state %d after TX\n", mynextstate8510);
+                         DEBUG("_isr#%d: Cannot handle state %d after TX\n", dev->interrupts, mynextstate8510);
                          break;
                 }
 
@@ -695,15 +695,16 @@ static void _isr(netdev2_t *netdev){
     }
 
 #if ENABLE_DEBUG & DEBUG_ISR
-    DEBUG("_isr: state: %d pending_tx: %d\n", mystate8510, dev->pending_tx);
+    DEBUG("_isr#%d: state=%d pending_tx=%d\n", dev->interrupts, mystate8510, dev->pending_tx);
     DEBUG(
-        "_isr: Get Event Bytes: %02x %02x %02x %02x\n",
-        status[0], status[1], status[2], status[3]
+        "_isr#%d: Get Event Bytes: %02x %02x %02x %02x\n",
+        dev->interrupts, status[0], status[1], status[2], status[3]
     );
 #endif
 #if ENABLE_DEBUG & DEBUG_ISR_EVENTS
     DEBUG(
-        "_isr: SYS_ERR=%d CMD_RDY=%d SYS_RDY=%d SFIFO=%d DFIFO_RX=%d DFIFO_TX=%x\n",
+        "_isr#%d: SYS_ERR=%d CMD_RDY=%d SYS_RDY=%d SFIFO=%d DFIFO_RX=%d DFIFO_TX=%x\n",
+        dev->interrupts,
         (status[ATA8510_SYSTEM] & ATA8510_SYSTEM_SYS_ERR  ? 1 : 0),
         (status[ATA8510_SYSTEM] & ATA8510_SYSTEM_CMD_RDY  ? 1 : 0),
         (status[ATA8510_SYSTEM] & ATA8510_SYSTEM_SYS_RDY  ? 1 : 0),
@@ -712,27 +713,28 @@ static void _isr(netdev2_t *netdev){
         (status[ATA8510_SYSTEM] & ATA8510_SYSTEM_DFIFO_TX ? 1 : 0)
     );
     DEBUG(
-        "_isr: SOTA=%d EOTA=%d\n",
-        (status[ATA8510_EVENTS] & ATA8510_EVENTS_SOTA     ? 1 : 0),
-        (status[ATA8510_EVENTS] & ATA8510_EVENTS_EOTA     ? 1 : 0)
+        "_isr#%d: SOTA=%d EOTA=%d\n",
+        dev->interrupts,
+        (status[ATA8510_EVENTS] & ATA8510_EVENTS_SOTA ? 1 : 0),
+        (status[ATA8510_EVENTS] & ATA8510_EVENTS_EOTA ? 1 : 0)
     );
 #endif
 #if ENABLE_DEBUG & (DEBUG_ISR | DEBUG_PKT_DUMP) == (DEBUG_ISR | DEBUG_PKT_DUMP)
     if (sfifo_len) {
-       DEBUG("_isr: SFIFO len=%d data=[", sfifo_len);
+       DEBUG("_isr#%d: SFIFO len=%d data=[", dev->interrupts, sfifo_len);
        for (i=0; i<sfifo_len; i++) DEBUG(" %02x", dataSFIFO[i+3]);
        DEBUG(" ]\n");
-       DEBUG("_isr: RSSI len=%d data=[", dev->RSSI_len);
+       DEBUG("_isr#%d: RSSI len=%d data=[", dev->interrupts, dev->RSSI_len);
        for (i=0; i<dev->RSSI_len; i++) DEBUG(" %02x", dev->RSSI[i]);
        DEBUG(" ]\n");
     }
     if (dfifo_rx_len) {
-       DEBUG("_isr: DFIFO_RX len=%d\n", dfifo_rx_len);
+       DEBUG("_isr#%d: DFIFO_RX len=%d\n", dev->interrupts, dfifo_rx_len);
     }
 #endif
 #if ENABLE_DEBUG & DEBUG_ISR
 	if ((status[ATA8510_EVENTS] & ATA8510_EVENTS_EOTA) && (mystate8510==ATA8510_STATE_TX_ON)) {
-       DEBUG("_isr: new state after TX: %d\n", ata8510_get_state(dev));
+       DEBUG("_isr#%d: new state after TX: %d\n", dev->interrupts, ata8510_get_state(dev));
     }
     DEBUG("\n");
 #endif
