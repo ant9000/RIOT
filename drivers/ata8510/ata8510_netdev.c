@@ -552,8 +552,42 @@ static void _isr(netdev2_t *netdev){
 	mystate8510 = ata8510_get_state(dev);
 	mynextstate8510 = ata8510_get_state_after_tx(dev);
 
-    // empty all buffers as soon as possible
+    // SYS_ERR event
+    errorcode = 0;
+	if (status[ATA8510_SYSTEM] & ATA8510_SYSTEM_SYS_ERR) {
+		errorcode = ata8510_read_error_code(dev);
+#if ENABLE_DEBUG & DEBUG_ISR_EVENTS_TRX
+	    DEBUG("_isr: SysErr=%d  SSM state=%d\n", errorcode>>8, errorcode&0xff);
+#endif
+        switch (errorcode>>8) {
+            case 21: //DEBUG_ERROR_CODE_SFIFO_OVER_UNDER_FLOW
+                break;
+            default:
+		        dev->sys_errors++;
+                break;
+        }
+	}
 
+    // SOTA event
+	if (status[ATA8510_EVENTS] & ATA8510_EVENTS_SOTA) {
+#if ENABLE_DEBUG & DEBUG_ISR_EVENTS_TRX
+        DEBUG("_isr: SOTA, state=%d\n", mystate8510);
+#endif
+	    switch (mystate8510) {
+            case ATA8510_STATE_POLLING:
+                // flush RX ringbuffer
+                if (!ringbuffer_empty(&dev->rb)) {
+                    DEBUG(
+                        "_isr: RX start, discarding %d stale bytes from buffer\n",
+                        dev->rb.avail
+                    );
+                    ringbuffer_remove(&dev->rb, dev->rb.avail);
+                }
+                break;
+        }
+    }
+
+    // empty SFIFO 
     if (
         (status[ATA8510_SYSTEM] & ATA8510_SYSTEM_SFIFO)    || // SFIFO fill event
         (status[ATA8510_SYSTEM] & ATA8510_SYSTEM_DFIFO_RX) || // DFIFO_RX fill event
@@ -579,6 +613,7 @@ static void _isr(netdev2_t *netdev){
         }
     }
 
+    // empty DFIFO_RX
 	if (
         (status[ATA8510_SYSTEM] & ATA8510_SYSTEM_DFIFO_RX) || // DFIFO_RX fill event
 	    (status[ATA8510_EVENTS] & ATA8510_EVENTS_EOTA)        // EOTA event
@@ -589,10 +624,12 @@ static void _isr(netdev2_t *netdev){
                 ata8510_ReadRxFIFO(dev, dfifo_rx_len, data);
                 n = ringbuffer_add(&dev->rb, (char *)data+3, dfifo_rx_len);
                 if (n != dfifo_rx_len){ DEBUG("_isr: RX buffer overflow"); }
+
             }
         }
 	}
 
+    // empty DFIFO_TX
 	if (
         (status[ATA8510_SYSTEM] & ATA8510_SYSTEM_DFIFO_TX) || // DFIFO_TX fill event
 	    (status[ATA8510_EVENTS] & ATA8510_EVENTS_EOTA)        // EOTA event
@@ -610,30 +647,6 @@ static void _isr(netdev2_t *netdev){
             }
         }
 	}
-
-    // SYS_ERR event
-    errorcode = 0;
-	if (status[ATA8510_SYSTEM] & ATA8510_SYSTEM_SYS_ERR) {
-		errorcode = ata8510_read_error_code(dev);
-#if ENABLE_DEBUG & DEBUG_ISR_EVENTS_TRX
-	    DEBUG("_isr: SysErr=%d  SSM state=%d\n", errorcode>>8, errorcode&0xff);
-#endif
-        switch (errorcode>>8) {
-            case 21: //DEBUG_ERROR_CODE_SFIFO_OVER_UNDER_FLOW
-                break;
-            default:
-		        dev->sys_errors++;
-                break;
-        }
-	}
-
-    // SOTA event
-	if (status[ATA8510_EVENTS] & ATA8510_EVENTS_SOTA) {
-#if ENABLE_DEBUG & DEBUG_ISR_EVENTS_TRX
-        DEBUG("_isr: SOTA, state=%d\n", mystate8510);
-#endif
-        // unhandled for now
-    }
 
     // EOTA event
 	if (status[ATA8510_EVENTS] & ATA8510_EVENTS_EOTA) {
