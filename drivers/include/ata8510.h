@@ -82,7 +82,9 @@ typedef struct {
     uint8_t pending_tx;                     /**< keep track of pending TX calls
                                                  this is required to know when to
                                                  return to @ref ata8510_t::idle_state */
-    /* TODO: find a better way */
+
+    uint8_t pending_rx;
+
     uint8_t mem[ATA8510_MAX_PKT_LENGTH];
     ringbuffer_t rb;
     uint8_t service;

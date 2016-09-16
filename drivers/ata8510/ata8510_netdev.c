@@ -133,6 +133,7 @@ static int _send(netdev2_t *netdev, const struct iovec *vector, unsigned count)
     dev->pending_tx = 1;
 
     ata8510_set_state(dev, ATA8510_STATE_IDLE);
+
     ata8510_tx_prepare(dev);
 
     /* load packet data into buffer */
@@ -583,6 +584,7 @@ static void _isr(netdev2_t *netdev){
                     );
                     ringbuffer_remove(&dev->rb, dev->rb.avail);
                 }
+                dev->pending_rx = 1;
                 break;
         }
     }
@@ -679,13 +681,17 @@ static void _isr(netdev2_t *netdev){
                 break;
 
 		    case ATA8510_STATE_POLLING:
-                dev->service = ATA8510_CONFIG_SERVICE(status[ATA8510_CONFIG]);
-                dev->channel = ATA8510_CONFIG_CHANNEL(status[ATA8510_CONFIG]);
+                if (dev->pending_rx) {  // avoid spurious EOTA
+                    dev->pending_rx = 0;
 
-                ata8510_set_state(dev, ATA8510_STATE_IDLE);
-                ata8510_set_state(dev, ATA8510_STATE_POLLING);
+                    dev->service = ATA8510_CONFIG_SERVICE(status[ATA8510_CONFIG]);
+                    dev->channel = ATA8510_CONFIG_CHANNEL(status[ATA8510_CONFIG]);
 
-                netdev->event_callback(netdev, NETDEV2_EVENT_RX_COMPLETE);
+                    ata8510_set_state(dev, ATA8510_STATE_IDLE);
+                    ata8510_set_state(dev, ATA8510_STATE_POLLING);
+
+                    netdev->event_callback(netdev, NETDEV2_EVENT_RX_COMPLETE);
+                }
                 break;
 
 		    default:
