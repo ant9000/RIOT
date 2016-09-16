@@ -40,7 +40,7 @@
 #define DEBUG_SEND            0x10
 #define DEBUG_RECV            0x20
 
-#define ENABLE_DEBUG      (DEBUG_ISR_EVENTS | DEBUG_ISR_EVENTS_TRX | DEBUG_RECV | DEBUG_PKT_DUMP)
+#define ENABLE_DEBUG      (DEBUG_ISR_EVENTS_TRX | DEBUG_RECV | DEBUG_PKT_DUMP)
 #include "debug.h"
 
 #define _MAX_MHR_OVERHEAD   (25)
@@ -691,6 +691,8 @@ static void _isr(netdev2_t *netdev){
                     ata8510_set_state(dev, ATA8510_STATE_POLLING);
 
                     netdev->event_callback(netdev, NETDEV2_EVENT_RX_COMPLETE);
+                } else {
+                    DEBUG("_isr#%d: got EOTA without SOTA in POLLING mode\n", dev->interrupts);
                 }
                 break;
 
