@@ -48,7 +48,7 @@
 #define INTERVALTXRANDMIN 1000000U
 #define INTERVALCHECKRX 200000U
 
-#define ENABLE_DEBUG (1)
+#define ENABLE_DEBUG (0)
 #include "debug.h"
 
 #include "msg.h"
@@ -171,8 +171,7 @@ void *thread_tx_rand(void *arg)     // Still has a problem on the very first mes
     while (1) {
         xtimer_periodic_wakeup(&last_wakeup, time_between_tx);
         printf("state: %d\n", ata8510_get_state(dev));
-//      dev->service = (dev->service ? 0 : 2); // alternate between service 0 and 2
-        dev->service = 2;
+        dev->service = 1;
         dev->channel = 0;
 
         sprintf(msg2, "%d%06d_", ID8510, numtx);
@@ -205,7 +204,7 @@ void *thread_tx_rand(void *arg)     // Still has a problem on the very first mes
         vector[0].iov_len = ATA8510_MAX_PKT_LENGTH;
         ((netdev2_t *)dev)->driver->send((netdev2_t *)dev, vector, 1);
 
-        time_between_tx = (dev->service==2 ? 1 : 5 ) * SEC_IN_USEC;
+        time_between_tx = (dev->service==0 ? 5 : 1 ) * SEC_IN_USEC;
         //time_between_tx = 1000000U + (random_uint32() % 3000000 ); // between 1 and 4 s
         last_wakeup = xtimer_now();
    }
@@ -274,18 +273,18 @@ void my_recv(netdev2_t *dev)
                 yarmtxreceivedcounter += ((buffer[i]-'0') * power10);
                 power10 *= 10;
             } else {
-                DEBUG("ERROR: not a digit in %d position of message: %c. Discard Message!\n",
+                printf("ERROR: not a digit in %d position of message: %c. Discard Message!\n",
                     i, buffer[i]);
                 discard = 1;
                 break;
             }
         }
-        DEBUG("Message extracted: Yarm ID %d:  Counter %d\n", yarmtxidreceived, yarmtxreceivedcounter);
+        printf("Message extracted: Yarm ID %d:  Counter %d\n", yarmtxidreceived, yarmtxreceivedcounter);
         if (discard == 0) {
             if (rxfirstreceived[yarmtxidreceived] == 1) {
                 // check msg length
                 if (data_len < 10) {
-                    DEBUG("ERROR: wrong message length %d: Discard Message!\n", data_len);
+                    printf("ERROR: wrong message length %d: Discard Message!\n", data_len);
                 } else {
                     // checksum control
                     checksum_received = (buffer[8]<=0x39 ? (buffer[8]-0x30)*16 :
@@ -294,7 +293,7 @@ void my_recv(netdev2_t *dev)
                         (buffer[9]-0x61)+10);
                     checksum = fletcher16(buffer, 8);
                     if (checksum != checksum_received) {
-                        DEBUG("ERROR: wrong checksum received %02x instead of %02x: Discard Message!\n",
+                        printf("ERROR: wrong checksum received %02x instead of %02x: Discard Message!\n",
                             checksum_received, checksum);
                     } else {
                         // length and checksum ok and already received a message from this YARM. We can analyze errors
@@ -304,7 +303,7 @@ void my_recv(netdev2_t *dev)
                         } else {
                             if (yarmtxreceivedcounter < rxcounter[yarmtxidreceived]) {
                                 // YARM TX probably restarted
-                                DEBUG("ERROR: YARM TX %d probably restarted. Reset counters for it\n", yarmtxidreceived);
+                                printf("ERROR: YARM TX %d probably restarted. Reset counters for it\n", yarmtxidreceived);
                                 rxerrors[yarmtxidreceived] = 0;
                                 tot_restarts++;
                             } else {
@@ -323,9 +322,9 @@ void my_recv(netdev2_t *dev)
             }
         }
     } else {
-       DEBUG("error: wrong yarm tx id received: %c. discard message\n",buffer[0]);
+       printf("error: wrong yarm tx id received: %c. discard message\n",buffer[0]);
     }
-    DEBUG("\n\n");
+    printf("\n\n");
 }
 
 #ifdef THREADCHECKRXERRORS
