@@ -166,17 +166,6 @@ bool ata8510_cca(ata8510_t *dev)
 void ata8510_tx_prepare(ata8510_t *dev)
 {
 	uint8_t TxPreambleBuffer[]={0x04, 0x70, 0x8E, 0x0A, 0x55, 0x55, 0x10, 0x55, 0x56};
-	uint8_t mydataRSSI[19], myrssilen;
-	uint8_t i;
-
-    // flush RSSI FIFO
-	myrssilen=ata8510_ReadFillLevelRSSIFIFO(dev);
-	DEBUG("tx_prepare: rssilen = %d\n",(int)myrssilen);
-	if (myrssilen>0) {
-		ata8510_ReadRSSIFIFO(dev, myrssilen, mydataRSSI);
-		for (i=0; i< myrssilen; i++) DEBUG(" %d", mydataRSSI[i]);
-	}
-	DEBUG("\n");
 
     // write TX preamble 
 	ata8510_WriteTxPreamble(dev, sizeof(TxPreambleBuffer), TxPreambleBuffer);

@@ -132,7 +132,9 @@ static int _send(netdev2_t *netdev, const struct iovec *vector, unsigned count)
     }
     dev->pending_tx = 1;
 
-    ata8510_set_state(dev, ATA8510_STATE_IDLE);
+    // activate tx mode 
+//  ata8510_set_state(dev, ATA8510_STATE_IDLE);
+    ata8510_set_state(dev, ATA8510_STATE_TX_ON);
 
     ata8510_tx_prepare(dev);
 
@@ -147,9 +149,6 @@ static int _send(netdev2_t *netdev, const struct iovec *vector, unsigned count)
         }
         len = ata8510_tx_load(dev, ptr->iov_base, ptr->iov_len, len);
     }
-
-    // activate tx mode 
-    ata8510_set_state(dev, ATA8510_STATE_TX_ON);
 
     // send first bytes of message until FIFO is full
     n = ata8510_ReadFillLevelTxFIFO(dev);
