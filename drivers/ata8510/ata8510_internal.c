@@ -93,7 +93,7 @@ uint8_t ata8510_SetIdleMode(ata8510_t *dev)
 	uint8_t command[3]={ ATA8510_CMD_SETSYSTEMMODE, ATA8510_RF_IDLEMODE, ATA8510_RF_RXSERVICE};
 	uint8_t data[3];
 	ata8510_send_cmd(dev, command, data, sizeof(command));
-    xtimer_usleep(70);
+    //xtimer_usleep(70);
 	return data[0];
 }
 

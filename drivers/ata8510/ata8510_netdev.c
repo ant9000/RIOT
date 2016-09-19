@@ -663,7 +663,6 @@ static void _isr(netdev2_t *netdev){
                     );
                     ringbuffer_remove(&dev->rb, dev->rb.avail);
                 }
-                dev->pending_tx = 0;
 
                 ata8510_set_state(dev, ATA8510_STATE_IDLE);
                 switch (mynextstate8510) {
@@ -678,11 +677,11 @@ static void _isr(netdev2_t *netdev){
                 }
 
                 netdev->event_callback(netdev, NETDEV2_EVENT_TX_COMPLETE);
+                dev->pending_tx = 0;
                 break;
 
 		    case ATA8510_STATE_POLLING:
                 if (dev->pending_rx) {  // avoid spurious EOTA
-                    dev->pending_rx = 0;
 
                     dev->service = ATA8510_CONFIG_SERVICE(status[ATA8510_CONFIG]);
                     dev->channel = ATA8510_CONFIG_CHANNEL(status[ATA8510_CONFIG]);
@@ -691,8 +690,7 @@ static void _isr(netdev2_t *netdev){
                     ata8510_set_state(dev, ATA8510_STATE_POLLING);
 
                     netdev->event_callback(netdev, NETDEV2_EVENT_RX_COMPLETE);
-                } else {
-                    DEBUG("_isr#%d: got EOTA without SOTA in POLLING mode\n", dev->interrupts);
+                    dev->pending_rx = 0;
                 }
                 break;
 
