@@ -113,6 +113,13 @@ static int _send(netdev2_t *netdev, const struct iovec *vector, unsigned count)
     uint8_t data[ATA8510_DFIFO_TX_LENGTH];
     int n;
 
+    for (unsigned i = 0; i < count; i++) { len += vector[i].iov_len; }
+    /* current packet data too long */
+    if (len > ATA8510_MAX_PKT_LENGTH) {
+        DEBUG("_send: packet too large (%u byte) to be sent\n", (unsigned)len);
+        return -EOVERFLOW;
+    }
+
 #if ENABLE_DEBUG & (DEBUG_SEND | DEBUG_PKT_DUMP) == (DEBUG_SEND | DEBUG_PKT_DUMP)
     DEBUG("_send: data=[");
     unsigned c=0;
@@ -133,20 +140,13 @@ static int _send(netdev2_t *netdev, const struct iovec *vector, unsigned count)
     dev->pending_tx = 1;
 
     // activate tx mode 
-//  ata8510_set_state(dev, ATA8510_STATE_IDLE);
     ata8510_set_state(dev, ATA8510_STATE_TX_ON);
 
     ata8510_tx_prepare(dev);
 
     /* load packet data into buffer */
+    len = 0;
     for (unsigned i = 0; i < count; i++, ptr++) {
-        /* current packet data too long */
-        if ((len + ptr->iov_len) > ATA8510_MAX_PKT_LENGTH) {
-            DEBUG("_send: packet too large (%u byte) to be sent\n",
-                  (unsigned)len);
-            dev->pending_tx = 0;
-            return -EOVERFLOW;
-        }
         len = ata8510_tx_load(dev, ptr->iov_base, ptr->iov_len, len);
     }
 
@@ -674,7 +674,6 @@ static void _isr(netdev2_t *netdev){
                          DEBUG("_isr#%d: Cannot handle state %d after TX\n", dev->interrupts, mynextstate8510);
                          break;
                 }
-
                 netdev->event_callback(netdev, NETDEV2_EVENT_TX_COMPLETE);
                 dev->pending_tx = 0;
                 break;
