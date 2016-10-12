@@ -132,12 +132,13 @@ static int _send(netdev2_t *netdev, const struct iovec *vector, unsigned count)
     DEBUG("\n], len=%d\n", c);
 #endif
 
-    if (dev->pending_tx) {
-        DEBUG("_send: error: pending transmission\n");
-        netdev->event_callback(netdev, NETDEV2_EVENT_TX_MEDIUM_BUSY);
-        return -EOVERFLOW;
+    dev->pending_tx++;
+    /* make sure ongoing transmissions are finished */
+    while(dev->busy) {
+        xtimer_usleep(25);
+        _isr(netdev);
     }
-    dev->pending_tx = 1;
+    dev->busy=1;
 
     // activate tx mode 
     ata8510_set_state(dev, ATA8510_STATE_TX_ON);
@@ -583,7 +584,7 @@ static void _isr(netdev2_t *netdev){
                     );
                     ringbuffer_remove(&dev->rb, dev->rb.avail);
                 }
-                dev->pending_rx = 1;
+                dev->busy = 1;
                 break;
         }
     }
@@ -663,23 +664,29 @@ static void _isr(netdev2_t *netdev){
                     ringbuffer_remove(&dev->rb, dev->rb.avail);
                 }
 
-                ata8510_set_state(dev, ATA8510_STATE_IDLE);
-                switch (mynextstate8510) {
-                    case ATA8510_STATE_IDLE:
-                        break;
-                    case ATA8510_STATE_POLLING:
-                        ata8510_set_state(dev, ATA8510_STATE_POLLING);
-                        break;
-                    default:
-                         DEBUG("_isr#%d: Cannot handle state %d after TX\n", dev->interrupts, mynextstate8510);
-                         break;
+                /* check for more pending TX calls and return to idle state if
+                 * there are none */
+                assert(dev->pending_tx != 0);
+                if ((--dev->pending_tx) == 0) {
+                    ata8510_set_state(dev, ATA8510_STATE_IDLE);
+                    switch (mynextstate8510) {
+                        case ATA8510_STATE_IDLE:
+                            break;
+                        case ATA8510_STATE_POLLING:
+                            ata8510_set_state(dev, ATA8510_STATE_POLLING);
+                            break;
+                        default:
+                             DEBUG("_isr#%d: Cannot handle state %d after TX\n", dev->interrupts, mynextstate8510);
+                             break;
+                    }
                 }
+                dev->busy = 0;
                 netdev->event_callback(netdev, NETDEV2_EVENT_TX_COMPLETE);
-                dev->pending_tx = 0;
+
                 break;
 
 		    case ATA8510_STATE_POLLING:
-                if (dev->pending_rx) {  // avoid spurious EOTA
+                if (dev->busy) {  // avoid spurious EOTA
 
                     dev->service = ATA8510_CONFIG_SERVICE(status[ATA8510_CONFIG]);
                     dev->channel = ATA8510_CONFIG_CHANNEL(status[ATA8510_CONFIG]);
@@ -687,8 +694,8 @@ static void _isr(netdev2_t *netdev){
                     ata8510_set_state(dev, ATA8510_STATE_IDLE);
                     ata8510_set_state(dev, ATA8510_STATE_POLLING);
 
+                    dev->busy = 0;
                     netdev->event_callback(netdev, NETDEV2_EVENT_RX_COMPLETE);
-                    dev->pending_rx = 0;
                 }
                 break;
 

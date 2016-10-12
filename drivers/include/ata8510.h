@@ -83,7 +83,7 @@ typedef struct {
                                                  this is required to know when to
                                                  return to @ref ata8510_t::idle_state */
 
-    uint8_t pending_rx;
+    uint8_t busy;
 
     uint8_t mem[ATA8510_MAX_PKT_LENGTH];
     ringbuffer_t rb;
