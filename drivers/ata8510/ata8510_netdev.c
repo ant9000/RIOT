@@ -136,10 +136,10 @@ static int _send(netdev2_t *netdev, const struct iovec *vector, unsigned count)
     /* make sure ongoing transmissions are finished */
     unsigned i=0;
     while(dev->busy) {
-        if(i++%100==0){ DEBUG("."); }
-        xtimer_usleep(100);
+        i++;
+        xtimer_usleep(0);
     }
-    DEBUG("\n");
+    if(i>0) DEBUG("busy loops: %d\n", i);
     dev->busy=1;
 
     // activate tx mode 

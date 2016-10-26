@@ -171,7 +171,7 @@ void *thread_tx_rand(void *arg)     // Still has a problem on the very first mes
     while (1) {
         xtimer_periodic_wakeup(&last_wakeup, time_between_tx);
         printf("state: %d\n", ata8510_get_state(dev));
-        dev->service = 1;
+        dev->service = 2;
         dev->channel = 0;
 
         sprintf(msg2, "%d%06d_", ID8510, numtx);
@@ -185,6 +185,8 @@ void *thread_tx_rand(void *arg)     // Still has a problem on the very first mes
         printf("Sending %d bytes using service %d:\n%s\n", ATA8510_MAX_PKT_LENGTH, dev->service, msg);
 
         // test listen before talk
+        (void)myturn;
+/*
         do {
             while (!ata8510_cca(dev)) {
                 xtimer_usleep(100);
@@ -199,12 +201,14 @@ void *thread_tx_rand(void *arg)     // Still has a problem on the very first mes
                 }
             }
         } while (myturn == 0);
+*/
 
         vector[0].iov_base = msg;
         vector[0].iov_len = ATA8510_MAX_PKT_LENGTH;
         ((netdev2_t *)dev)->driver->send((netdev2_t *)dev, vector, 1);
 
         time_between_tx = (dev->service==0 ? 5 : 1 ) * SEC_IN_USEC;
+        time_between_tx = 0U;
         //time_between_tx = 1000000U + (random_uint32() % 3000000 ); // between 1 and 4 s
         last_wakeup = xtimer_now();
    }
