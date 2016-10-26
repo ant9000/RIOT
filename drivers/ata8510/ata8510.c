@@ -152,12 +152,16 @@ bool ata8510_cca(ata8510_t *dev)
     uint8_t data[4]={0,0,0,0};
     bool channel_clear;
 
+    if(dev->busy) return 0;
+    dev->busy=1;
+
     ata8510_write_sram_register(dev, 0x294, 0x27);  // set RSSI polling to 9 (6.8ms) to enable fast sniffing
     ata8510_StartRSSI_Measurement(dev, dev->service, dev->channel); // start RSSI measure
     xtimer_usleep(6000);
     ata8510_GetRSSI_Value(dev, data);
     ata8510_write_sram_register(dev, 0x294, 0x2b);  // set RSSI polling back to 11 (27.1ms) to avoid SFIFO
                                                     // interrupts (for transmissions up to 380ms)
+    dev->busy=0;
     channel_clear = (data[2] <= 50);
     DEBUG("ata8510_cca: channel %s\n", channel_clear ? "clear" : "busy");
     return channel_clear;
@@ -202,8 +206,8 @@ void ata8510_tx_exec(ata8510_t *dev)
 		DEBUG("tx_exec: Channel not permitted %d\n",dev->channel);
 		return;
 	}
-	ata8510_SetSystemMode(dev, ATA8510_RF_TXMODE, modeTx);
-	DEBUG("ata8510_SetSystemMode TXMode. modeTx = %02x\n",modeTx);
+    ata8510_SetTXMode(dev, modeTx);
+	DEBUG("ata8510_SetTXMode = %02x\n",modeTx);
 }
 
 uint16_t ata8510_read_error_code(ata8510_t *dev)

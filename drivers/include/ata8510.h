@@ -186,8 +186,6 @@ uint8_t ata8510_get_device_signature(ata8510_t *dev);
  */
 uint8_t ata8510_SetPollingMode(ata8510_t *dev);
 
-
-
 /**
  * @brief Switch to idle mode of the RF transceiver
  *
@@ -196,6 +194,15 @@ uint8_t ata8510_SetPollingMode(ata8510_t *dev);
  * @return                  event status byte
  */
 uint8_t ata8510_SetIdleMode(ata8510_t *dev);
+
+/**
+ * @brief Switch to TX mode of the RF transceiver
+ *
+ * @param[in] dev           device to write to
+ *
+ * @return                  event status byte
+ */
+uint8_t ata8510_SetTXMode(ata8510_t *dev, uint8_t modeTx);
 
 /**
  * @brief   Read device event 4 bytes

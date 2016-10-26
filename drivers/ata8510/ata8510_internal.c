@@ -97,6 +97,17 @@ uint8_t ata8510_SetIdleMode(ata8510_t *dev)
 	return data[0];
 }
 
+uint8_t ata8510_SetTXMode(ata8510_t *dev, uint8_t modeTx)
+{
+    // set transmit mode
+	int ret;
+	uint8_t command[3]={ATA8510_CMD_SETSYSTEMMODE, ATA8510_RF_TXMODE, modeTx};
+	uint8_t dummy[3];
+
+    ata8510_SetIdleMode(dev);
+	ret=ata8510_send_cmd(dev, command, dummy, ATA8510_CMD_SETSYSTEMMODE_LEN);
+	return ret;
+}
 
 uint8_t ata8510_ReadFillLevelRxFIFO(ata8510_t *dev){
 	uint8_t command[3]={ATA8510_CMD_READRXFILLLEVEL,0x00,0x00};
