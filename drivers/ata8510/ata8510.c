@@ -54,6 +54,7 @@ void ata8510_reset(ata8510_t *dev)
 #endif
     eui64_t addr_long;
 #endif
+    uint8_t status[4];
 
     ata8510_hardware_reset(dev);
 
@@ -136,15 +137,26 @@ void ata8510_reset(ata8510_t *dev)
 //    /* go into RX state */
 //    ata8510_set_state(dev, ATA8510_STATE_RX_AACK_ON);
 
-    dev->service = 1;
+    dev->service = 2;
     dev->channel = 0;
     dev->idle_state = ATA8510_STATE_POLLING;
     dev->pending_tx = 0;
 
-    ata8510_set_state(dev, ATA8510_STATE_POLLING);
     ata8510_write_sram_register(dev, 0x294, 0x2b);  // set RSSI polling to 11 (27.1ms)
+    ata8510_set_state(dev, ATA8510_STATE_POLLING);
 
-    DEBUG("ata8510_reset(): reset complete.\n");
+	ata8510_GetEventBytes(dev, status);
+    DEBUG(
+        "ata8510_reset: SYS_ERR=%d CMD_RDY=%d SYS_RDY=%d SFIFO=%d DFIFO_RX=%d DFIFO_TX=%d\n",
+        (status[ATA8510_SYSTEM] & ATA8510_SYSTEM_SYS_ERR  ? 1 : 0),
+        (status[ATA8510_SYSTEM] & ATA8510_SYSTEM_CMD_RDY  ? 1 : 0),
+        (status[ATA8510_SYSTEM] & ATA8510_SYSTEM_SYS_RDY  ? 1 : 0),
+        (status[ATA8510_SYSTEM] & ATA8510_SYSTEM_SFIFO    ? 1 : 0),
+        (status[ATA8510_SYSTEM] & ATA8510_SYSTEM_DFIFO_RX ? 1 : 0),
+        (status[ATA8510_SYSTEM] & ATA8510_SYSTEM_DFIFO_TX ? 1 : 0)
+    );
+
+    DEBUG("ata8510_reset(): reset complete\n");
 }
 
 bool ata8510_cca(ata8510_t *dev)
@@ -171,6 +183,7 @@ void ata8510_tx_prepare(ata8510_t *dev)
 {
 	uint8_t TxPreambleBuffer[]={0x04, 0x70, 0x8E, 0x0A, 0x55, 0x55, 0x10, 0x55, 0x56};
 
+    ata8510_SetIdleMode(dev);
     // write TX preamble 
 	ata8510_WriteTxPreamble(dev, sizeof(TxPreambleBuffer), TxPreambleBuffer);
 	DEBUG("ata8510_WriteTxPreamble\n");
