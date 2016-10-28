@@ -40,7 +40,8 @@
 #define DEBUG_SEND            0x10
 #define DEBUG_RECV            0x20
 
-#define ENABLE_DEBUG      (DEBUG_ISR_EVENTS_TRX | DEBUG_RECV | DEBUG_PKT_DUMP)
+#define ENABLE_DEBUG      (DEBUG_RECV)
+//#define ENABLE_DEBUG     (DEBUG_ISR | DEBUG_ISR_EVENTS | DEBUG_ISR_EVENTS_TRX | DEBUG_SEND | DEBUG_RECV | DEBUG_PKT_DUMP)
 #include "debug.h"
 
 #define _MAX_MHR_OVERHEAD   (25)
@@ -61,14 +62,12 @@ const netdev2_driver_t ata8510_driver = {
     .set = _set,
 };
 
-
+#define DEBUG_PIN  GPIO_PIN(PA, 11)
 static void _irq_handler(void *arg)
 {
     netdev2_t *dev = (netdev2_t *) arg;
 
-    if (dev->event_callback) {
-        dev->event_callback(dev, NETDEV2_EVENT_ISR);
-    }
+    _isr(dev);
 }
 
 static int _init(netdev2_t *netdev)
@@ -83,6 +82,10 @@ static int _init(netdev2_t *netdev)
     gpio_init(dev->params.reset_pin, GPIO_OUT);
     gpio_set(dev->params.reset_pin);
     gpio_init_int(dev->params.int_pin, GPIO_IN, GPIO_FALLING, _irq_handler, dev);
+
+    // define an hw debug pin
+    gpio_init(DEBUG_PIN, GPIO_OUT);
+    gpio_clear(DEBUG_PIN);
 
     ata8510_power_on(dev);
     spi_poweron(dev->params.spi);
@@ -111,7 +114,12 @@ static int _send(netdev2_t *netdev, const struct iovec *vector, unsigned count)
     const struct iovec *ptr = vector;
     size_t len = 0;
     uint8_t data[ATA8510_DFIFO_TX_LENGTH];
-    int n;
+    int i,n;
+
+// assert the hw debug pin
+gpio_set(DEBUG_PIN);
+xtimer_usleep(10);
+gpio_clear(DEBUG_PIN);
 
     for (unsigned i = 0; i < count; i++) { len += vector[i].iov_len; }
     /* current packet data too long */
@@ -133,17 +141,14 @@ static int _send(netdev2_t *netdev, const struct iovec *vector, unsigned count)
 #endif
 
     dev->pending_tx++;
-    /* make sure ongoing transmissions are finished */
-    unsigned i=0;
+    /* make sure ongoing radio activity is finished */
+    i=0;
     while(dev->busy) {
         i++;
         xtimer_usleep(0);
     }
-    if(i>0) DEBUG("busy loops: %d\n", i);
+    DEBUG("START busy loops: %d\n", i);
     dev->busy=1;
-
-    // activate tx mode 
-    ata8510_set_state(dev, ATA8510_STATE_TX_ON);
 
     ata8510_tx_prepare(dev);
 
@@ -155,6 +160,9 @@ static int _send(netdev2_t *netdev, const struct iovec *vector, unsigned count)
 
     // send first bytes of message until FIFO is full
     n = ata8510_ReadFillLevelTxFIFO(dev);
+#if ENABLE_DEBUG & DEBUG_SEND
+    DEBUG("_send: ReadFillLevelTxFIFO %d bytes\n", n);
+#endif
     if (n < ATA8510_DFIFO_TX_LENGTH) { // DFIFO_TX has free space
         n = ringbuffer_get(&dev->rb, (char *)data, ATA8510_DFIFO_TX_LENGTH - n);
         if (n) {
@@ -164,6 +172,17 @@ static int _send(netdev2_t *netdev, const struct iovec *vector, unsigned count)
             ata8510_WriteTxFifo(dev, n, data);
         }
     }
+
+    // activate tx mode 
+    ata8510_set_state(dev, ATA8510_STATE_TX_ON);
+
+    // wait until trasmission ends
+    i=0;
+    while(dev->busy) {
+        i++;
+        xtimer_usleep(0);
+    }
+    DEBUG("END busy loops: %d\n", i);
 
 #ifdef MODULE_NETSTATS_L2
     netdev->stats.tx_bytes += len;
@@ -188,14 +207,14 @@ static int _recv(netdev2_t *netdev, void *buf, size_t len, void *info)
     if (buf == NULL) {
         return pkt_len;
     }
-#ifdef MODULE_NETSTATS_L2
-    netdev->stats.rx_count++;
-    netdev->stats.rx_bytes += pkt_len;
-#endif
     /* not enough space in buf */
     if (pkt_len > len) {
         return -ENOBUFS;
     }
+#ifdef MODULE_NETSTATS_L2
+    netdev->stats.rx_count++;
+    netdev->stats.rx_bytes += pkt_len;
+#endif
 
     /* copy payload */
     ringbuffer_get(&dev->rb, (char *)buf, pkt_len);
@@ -549,6 +568,7 @@ static void _isr(netdev2_t *netdev){
     uint16_t errorcode;
 
     ata8510_t *dev = (ata8510_t *)netdev;
+
 	dev->interrupts++;
 	ata8510_GetEventBytes(dev, status);
 
@@ -708,7 +728,7 @@ static void _isr(netdev2_t *netdev){
     }
 
 #if ENABLE_DEBUG & DEBUG_ISR
-    DEBUG("_isr#%d: state=%d pending_tx=%d\n", dev->interrupts, mystate8510, dev->pending_tx);
+    DEBUG("_isr#%d: state=%d pending_tx=%d busy=%d\n", dev->interrupts, mystate8510, dev->pending_tx, dev->busy);
     DEBUG(
         "_isr#%d: Get Event Bytes: %02x %02x %02x %02x\n",
         dev->interrupts, status[0], status[1], status[2], status[3]
@@ -716,7 +736,7 @@ static void _isr(netdev2_t *netdev){
 #endif
 #if ENABLE_DEBUG & DEBUG_ISR_EVENTS
     DEBUG(
-        "_isr#%d: SYS_ERR=%d CMD_RDY=%d SYS_RDY=%d SFIFO=%d DFIFO_RX=%d DFIFO_TX=%x\n",
+        "_isr#%d: SYS_ERR=%d CMD_RDY=%d SYS_RDY=%d SFIFO=%d DFIFO_RX=%d DFIFO_TX=%d\n",
         dev->interrupts,
         (status[ATA8510_SYSTEM] & ATA8510_SYSTEM_SYS_ERR  ? 1 : 0),
         (status[ATA8510_SYSTEM] & ATA8510_SYSTEM_CMD_RDY  ? 1 : 0),
