@@ -40,7 +40,7 @@
 #define DEBUG_SEND            0x10
 #define DEBUG_RECV            0x20
 
-#define ENABLE_DEBUG      (DEBUG_RECV)
+#define ENABLE_DEBUG      (0)
 //#define ENABLE_DEBUG     (DEBUG_ISR | DEBUG_ISR_EVENTS | DEBUG_ISR_EVENTS_TRX | DEBUG_SEND | DEBUG_RECV | DEBUG_PKT_DUMP)
 #include "debug.h"
 
@@ -65,9 +65,177 @@ const netdev2_driver_t ata8510_driver = {
 #define DEBUG_PIN  GPIO_PIN(PA, 11)
 static void _irq_handler(void *arg)
 {
-    netdev2_t *dev = (netdev2_t *) arg;
+    netdev2_t *netdev = (netdev2_t *) arg;
+    ata8510_t *dev = (ata8510_t *)netdev;
 
-    _isr(dev);
+    uint8_t data[37];
+    uint8_t status[4];
+    uint8_t dataSFIFO[19];
+    uint8_t mystate8510, mynextstate8510;
+	int i, n;
+    int sfifo_len=0, dfifo_rx_len=0;
+    uint16_t errorcode;
+
+
+	dev->interrupts++;
+	ata8510_GetEventBytes(dev, status);
+
+	mystate8510 = ata8510_get_state(dev);
+	mynextstate8510 = ata8510_get_state_after_tx(dev);
+
+    // SYS_ERR event
+    errorcode = 0;
+	if (status[ATA8510_SYSTEM] & ATA8510_SYSTEM_SYS_ERR) {
+		errorcode = ata8510_read_error_code(dev);
+#if ENABLE_DEBUG & DEBUG_ISR_EVENTS_TRX
+	    DEBUG("_isr#%d: SysErr=%d  SSM state=%d\n", dev->interrupts, errorcode>>8, errorcode&0xff);
+#endif
+        switch (errorcode>>8) {
+            case 21: //DEBUG_ERROR_CODE_SFIFO_OVER_UNDER_FLOW
+                break;
+            default:
+		        dev->sys_errors++;
+                break;
+        }
+	}
+
+    // SOTA event
+	if (status[ATA8510_EVENTS] & ATA8510_EVENTS_SOTA) {
+#if ENABLE_DEBUG & DEBUG_ISR_EVENTS_TRX
+        DEBUG("_isr#%d: SOTA, state=%d\n", dev->interrupts, mystate8510);
+#endif
+	    switch (mystate8510) {
+            case ATA8510_STATE_POLLING:
+                // flush RX ringbuffer
+                if (!ringbuffer_empty(&dev->rb)) {
+                    DEBUG(
+                        "_isr#%d: RX start, discarding %d stale bytes from buffer\n",
+                        dev->interrupts, dev->rb.avail
+                    );
+                    ringbuffer_remove(&dev->rb, dev->rb.avail);
+                }
+                dev->busy = 1;
+                break;
+        }
+    }
+
+    // empty SFIFO 
+    if (
+        (status[ATA8510_SYSTEM] & ATA8510_SYSTEM_SFIFO)    || // SFIFO fill event
+        (status[ATA8510_SYSTEM] & ATA8510_SYSTEM_DFIFO_RX) || // DFIFO_RX fill event
+	    (status[ATA8510_EVENTS] & ATA8510_EVENTS_EOTA)        // EOTA event
+    ) {
+        switch (mystate8510) {
+            case ATA8510_STATE_TX_ON:
+                // TODO: in TX mode, SFIFO fills up when preamble is big
+                break;
+            default:
+                sfifo_len = ata8510_ReadFillLevelRSSIFIFO(dev);
+                if (sfifo_len>0) {
+                    ata8510_ReadRSSIFIFO(dev, sfifo_len, dataSFIFO);
+                    for (i=0; i<sfifo_len; i++) {
+                        dev->RSSI[ (i + dev->RSSI_len) % sizeof(dev->RSSI) ] = dataSFIFO[i+3];
+                    }
+                    dev->RSSI_len += sfifo_len;
+                    if(dev->RSSI_len > sizeof(dev->RSSI)){
+                        dev->RSSI_len = sizeof(dev->RSSI);
+                    }
+                }
+                break;
+        }
+    }
+
+    // empty DFIFO_RX
+	if (
+        (status[ATA8510_SYSTEM] & ATA8510_SYSTEM_DFIFO_RX) || // DFIFO_RX fill event
+	    (status[ATA8510_EVENTS] & ATA8510_EVENTS_EOTA)        // EOTA event
+    ) {
+        if(mystate8510==ATA8510_STATE_POLLING){
+            dfifo_rx_len = ata8510_ReadFillLevelRxFIFO(dev);
+            if (dfifo_rx_len>0) { // there is data to read
+                ata8510_ReadRxFIFO(dev, dfifo_rx_len, data);
+                for (i=0;i<dfifo_rx_len;i++) { ringbuffer_add_one(&dev->rb, data[i+3]); }
+            }
+        }
+	}
+
+    // empty DFIFO_TX
+	if (
+        (status[ATA8510_SYSTEM] & ATA8510_SYSTEM_DFIFO_TX) || // DFIFO_TX fill event
+	    (status[ATA8510_EVENTS] & ATA8510_EVENTS_EOTA)        // EOTA event
+    ) {
+        if(mystate8510==ATA8510_STATE_TX_ON){
+            n = ata8510_ReadFillLevelTxFIFO(dev);
+            if (n < ATA8510_DFIFO_TX_LENGTH) { // DFIFO_TX has free space
+                n = ringbuffer_get(&dev->rb, (char *)data, ATA8510_DFIFO_TX_LENGTH - n);
+                if (n) {
+#if ENABLE_DEBUG & DEBUG_SEND
+                    DEBUG("_isr#%d: send batch %d bytes\n", dev->interrupts, n);
+#endif
+                    ata8510_WriteTxFifo(dev, n, data);
+                }
+            }
+        }
+	}
+
+    // EOTA event
+	if (status[ATA8510_EVENTS] & ATA8510_EVENTS_EOTA) {
+#if ENABLE_DEBUG & DEBUG_ISR_EVENTS_TRX
+        DEBUG("_isr#%d: EOTA, state=%d\n", dev->interrupts, mystate8510);
+#endif
+	    switch (mystate8510) {
+            case ATA8510_STATE_TX_ON:
+                // flush TX ringbuffer
+                if (!ringbuffer_empty(&dev->rb)) {
+                    DEBUG(
+                        "_isr#%d: TX end, discarding %d stale bytes from buffer\n",
+                        dev->interrupts, dev->rb.avail
+                    );
+                    ringbuffer_remove(&dev->rb, dev->rb.avail);
+                }
+
+                /* check for more pending TX calls and return to idle state if
+                 * there are none */
+                assert(dev->pending_tx != 0);
+                if ((--dev->pending_tx) == 0) {
+                    ata8510_set_state(dev, ATA8510_STATE_IDLE);
+                    switch (mynextstate8510) {
+                        case ATA8510_STATE_IDLE:
+                            break;
+                        case ATA8510_STATE_POLLING:
+                            ata8510_set_state(dev, ATA8510_STATE_POLLING);
+                            break;
+                        default:
+                             DEBUG("_isr#%d: Cannot handle state %d after TX\n", dev->interrupts, mynextstate8510);
+                             break;
+                    }
+                }
+                dev->busy = 0;
+                for(int i=0;i<4;i++){ dev->status[i]=status[i]; }
+                netdev->event_callback(netdev, NETDEV2_EVENT_ISR);
+
+                break;
+
+		    case ATA8510_STATE_POLLING:
+                if (dev->busy) {  // avoid spurious EOTA
+
+                    dev->service = ATA8510_CONFIG_SERVICE(status[ATA8510_CONFIG]);
+                    dev->channel = ATA8510_CONFIG_CHANNEL(status[ATA8510_CONFIG]);
+
+                    ata8510_set_state(dev, ATA8510_STATE_IDLE);
+                    ata8510_set_state(dev, ATA8510_STATE_POLLING);
+
+                    dev->busy = 0;
+                    for(int i=0;i<4;i++){ dev->status[i]=status[i]; }
+                    netdev->event_callback(netdev, NETDEV2_EVENT_ISR);
+                }
+                break;
+
+		    default:
+				dev->unknown_case++;
+		        break;
+        }
+    }
 }
 
 static int _init(netdev2_t *netdev)
@@ -219,7 +387,7 @@ static int _recv(netdev2_t *netdev, void *buf, size_t len, void *info)
     /* copy payload */
     ringbuffer_get(&dev->rb, (char *)buf, pkt_len);
 
-#if ENABLE_DEBUG & (DEBUG_RECV | DEBUG_PKT_DUMP) == (DEBUG_RECV | DEBUG_PKT_DUMP)
+#if ENABLE_DEBUG & DEBUG_RECV & DEBUG_PKT_DUMP
     DEBUG(
         "_recv: service=%d, channel=%d, pkt_len=%d, data=[", 
         dev->service, dev->channel, pkt_len
@@ -246,6 +414,7 @@ static int _recv(netdev2_t *netdev, void *buf, size_t len, void *info)
             DEBUG("_recv: no RSSI values read\n");
         }
     }
+printf("_recv: %d\n", pkt_len);
     return pkt_len;
 }
 
@@ -558,200 +727,37 @@ DEBUG("_set: opt=%d\n", opt);
     return res;
 }
 
-static void _isr(netdev2_t *netdev){
-    uint8_t data[37];
-    uint8_t status[4];
-    uint8_t dataSFIFO[19];
-    uint8_t mystate8510, mynextstate8510;
-	int i, n;
-    int sfifo_len=0, dfifo_rx_len=0;
-    uint16_t errorcode;
-
+static void _isr(netdev2_t *netdev)
+{
     ata8510_t *dev = (ata8510_t *)netdev;
-
-	dev->interrupts++;
-	ata8510_GetEventBytes(dev, status);
-
-	mystate8510 = ata8510_get_state(dev);
-	mynextstate8510 = ata8510_get_state_after_tx(dev);
-
-    // SYS_ERR event
-    errorcode = 0;
-	if (status[ATA8510_SYSTEM] & ATA8510_SYSTEM_SYS_ERR) {
-		errorcode = ata8510_read_error_code(dev);
-#if ENABLE_DEBUG & DEBUG_ISR_EVENTS_TRX
-	    DEBUG("_isr#%d: SysErr=%d  SSM state=%d\n", dev->interrupts, errorcode>>8, errorcode&0xff);
-#endif
-        switch (errorcode>>8) {
-            case 21: //DEBUG_ERROR_CODE_SFIFO_OVER_UNDER_FLOW
-                break;
-            default:
-		        dev->sys_errors++;
-                break;
-        }
-	}
-
-    // SOTA event
-	if (status[ATA8510_EVENTS] & ATA8510_EVENTS_SOTA) {
-#if ENABLE_DEBUG & DEBUG_ISR_EVENTS_TRX
-        DEBUG("_isr#%d: SOTA, state=%d\n", dev->interrupts, mystate8510);
-#endif
-	    switch (mystate8510) {
-            case ATA8510_STATE_POLLING:
-                // flush RX ringbuffer
-                if (!ringbuffer_empty(&dev->rb)) {
-                    DEBUG(
-                        "_isr#%d: RX start, discarding %d stale bytes from buffer\n",
-                        dev->interrupts, dev->rb.avail
-                    );
-                    ringbuffer_remove(&dev->rb, dev->rb.avail);
-                }
-                dev->busy = 1;
-                break;
-        }
-    }
-
-    // empty SFIFO 
-    if (
-        (status[ATA8510_SYSTEM] & ATA8510_SYSTEM_SFIFO)    || // SFIFO fill event
-        (status[ATA8510_SYSTEM] & ATA8510_SYSTEM_DFIFO_RX) || // DFIFO_RX fill event
-	    (status[ATA8510_EVENTS] & ATA8510_EVENTS_EOTA)        // EOTA event
-    ) {
-        switch (mystate8510) {
-            case ATA8510_STATE_TX_ON:
-                // TODO: in TX mode, SFIFO fills up when preamble is big
-                break;
-            default:
-                sfifo_len = ata8510_ReadFillLevelRSSIFIFO(dev);
-                if (sfifo_len>0) {
-                    ata8510_ReadRSSIFIFO(dev, sfifo_len, dataSFIFO);
-                    for (i=0; i<sfifo_len; i++) {
-                        dev->RSSI[ (i + dev->RSSI_len) % sizeof(dev->RSSI) ] = dataSFIFO[i+3];
-                    }
-                    dev->RSSI_len += sfifo_len;
-                    if(dev->RSSI_len > sizeof(dev->RSSI)){
-                        dev->RSSI_len = sizeof(dev->RSSI);
-                    }
-                }
-                break;
-        }
-    }
-
-    // empty DFIFO_RX
-	if (
-        (status[ATA8510_SYSTEM] & ATA8510_SYSTEM_DFIFO_RX) || // DFIFO_RX fill event
-	    (status[ATA8510_EVENTS] & ATA8510_EVENTS_EOTA)        // EOTA event
-    ) {
-        if(mystate8510==ATA8510_STATE_POLLING){
-            dfifo_rx_len = ata8510_ReadFillLevelRxFIFO(dev);
-            if (dfifo_rx_len>0) { // there is data to read
-                ata8510_ReadRxFIFO(dev, dfifo_rx_len, data);
-                for (i=0;i<dfifo_rx_len;i++) { ringbuffer_add_one(&dev->rb, data[i+3]); }
-            }
-        }
-	}
-
-    // empty DFIFO_TX
-	if (
-        (status[ATA8510_SYSTEM] & ATA8510_SYSTEM_DFIFO_TX) || // DFIFO_TX fill event
-	    (status[ATA8510_EVENTS] & ATA8510_EVENTS_EOTA)        // EOTA event
-    ) {
-        if(mystate8510==ATA8510_STATE_TX_ON){
-            n = ata8510_ReadFillLevelTxFIFO(dev);
-            if (n < ATA8510_DFIFO_TX_LENGTH) { // DFIFO_TX has free space
-                n = ringbuffer_get(&dev->rb, (char *)data, ATA8510_DFIFO_TX_LENGTH - n);
-                if (n) {
-#if ENABLE_DEBUG & DEBUG_SEND
-                    DEBUG("_isr#%d: send batch %d bytes\n", dev->interrupts, n);
-#endif
-                    ata8510_WriteTxFifo(dev, n, data);
-                }
-            }
-        }
-	}
-
-    // EOTA event
-	if (status[ATA8510_EVENTS] & ATA8510_EVENTS_EOTA) {
-#if ENABLE_DEBUG & DEBUG_ISR_EVENTS_TRX
-        DEBUG("_isr#%d: EOTA, state=%d\n", dev->interrupts, mystate8510);
-#endif
-	    switch (mystate8510) {
-            case ATA8510_STATE_TX_ON:
-                // flush TX ringbuffer
-                if (!ringbuffer_empty(&dev->rb)) {
-                    DEBUG(
-                        "_isr#%d: TX end, discarding %d stale bytes from buffer\n",
-                        dev->interrupts, dev->rb.avail
-                    );
-                    ringbuffer_remove(&dev->rb, dev->rb.avail);
-                }
-
-                /* check for more pending TX calls and return to idle state if
-                 * there are none */
-                assert(dev->pending_tx != 0);
-                if ((--dev->pending_tx) == 0) {
-                    ata8510_set_state(dev, ATA8510_STATE_IDLE);
-                    switch (mynextstate8510) {
-                        case ATA8510_STATE_IDLE:
-                            break;
-                        case ATA8510_STATE_POLLING:
-                            ata8510_set_state(dev, ATA8510_STATE_POLLING);
-                            break;
-                        default:
-                             DEBUG("_isr#%d: Cannot handle state %d after TX\n", dev->interrupts, mynextstate8510);
-                             break;
-                    }
-                }
-                dev->busy = 0;
-                netdev->event_callback(netdev, NETDEV2_EVENT_TX_COMPLETE);
-
-                break;
-
-		    case ATA8510_STATE_POLLING:
-                if (dev->busy) {  // avoid spurious EOTA
-
-                    dev->service = ATA8510_CONFIG_SERVICE(status[ATA8510_CONFIG]);
-                    dev->channel = ATA8510_CONFIG_CHANNEL(status[ATA8510_CONFIG]);
-
-                    ata8510_set_state(dev, ATA8510_STATE_IDLE);
-                    ata8510_set_state(dev, ATA8510_STATE_POLLING);
-
-                    dev->busy = 0;
-                    netdev->event_callback(netdev, NETDEV2_EVENT_RX_COMPLETE);
-                }
-                break;
-
-		    default:
-				dev->unknown_case++;
-		        break;
-        }
-    }
+    uint8_t mystate8510 = ata8510_get_state(dev);
 
 #if ENABLE_DEBUG & DEBUG_ISR
     DEBUG("_isr#%d: state=%d pending_tx=%d busy=%d\n", dev->interrupts, mystate8510, dev->pending_tx, dev->busy);
     DEBUG(
         "_isr#%d: Get Event Bytes: %02x %02x %02x %02x\n",
-        dev->interrupts, status[0], status[1], status[2], status[3]
+        dev->interrupts, dev->status[0], dev->status[1], dev->status[2], dev->status[3]
     );
 #endif
 #if ENABLE_DEBUG & DEBUG_ISR_EVENTS
     DEBUG(
         "_isr#%d: SYS_ERR=%d CMD_RDY=%d SYS_RDY=%d SFIFO=%d DFIFO_RX=%d DFIFO_TX=%d\n",
         dev->interrupts,
-        (status[ATA8510_SYSTEM] & ATA8510_SYSTEM_SYS_ERR  ? 1 : 0),
-        (status[ATA8510_SYSTEM] & ATA8510_SYSTEM_CMD_RDY  ? 1 : 0),
-        (status[ATA8510_SYSTEM] & ATA8510_SYSTEM_SYS_RDY  ? 1 : 0),
-        (status[ATA8510_SYSTEM] & ATA8510_SYSTEM_SFIFO    ? 1 : 0),
-        (status[ATA8510_SYSTEM] & ATA8510_SYSTEM_DFIFO_RX ? 1 : 0),
-        (status[ATA8510_SYSTEM] & ATA8510_SYSTEM_DFIFO_TX ? 1 : 0)
+        (dev->status[ATA8510_SYSTEM] & ATA8510_SYSTEM_SYS_ERR  ? 1 : 0),
+        (dev->status[ATA8510_SYSTEM] & ATA8510_SYSTEM_CMD_RDY  ? 1 : 0),
+        (dev->status[ATA8510_SYSTEM] & ATA8510_SYSTEM_SYS_RDY  ? 1 : 0),
+        (dev->status[ATA8510_SYSTEM] & ATA8510_SYSTEM_SFIFO    ? 1 : 0),
+        (dev->status[ATA8510_SYSTEM] & ATA8510_SYSTEM_DFIFO_RX ? 1 : 0),
+        (dev->status[ATA8510_SYSTEM] & ATA8510_SYSTEM_DFIFO_TX ? 1 : 0)
     );
     DEBUG(
         "_isr#%d: SOTA=%d EOTA=%d\n",
         dev->interrupts,
-        (status[ATA8510_EVENTS] & ATA8510_EVENTS_SOTA ? 1 : 0),
-        (status[ATA8510_EVENTS] & ATA8510_EVENTS_EOTA ? 1 : 0)
+        (dev->status[ATA8510_EVENTS] & ATA8510_EVENTS_SOTA ? 1 : 0),
+        (dev->status[ATA8510_EVENTS] & ATA8510_EVENTS_EOTA ? 1 : 0)
     );
 #endif
+/*
 #if ENABLE_DEBUG & (DEBUG_ISR | DEBUG_PKT_DUMP) == (DEBUG_ISR | DEBUG_PKT_DUMP)
     if (sfifo_len) {
        DEBUG("_isr#%d: SFIFO len=%d data=[", dev->interrupts, sfifo_len);
@@ -765,10 +771,25 @@ static void _isr(netdev2_t *netdev){
        DEBUG("_isr#%d: DFIFO_RX len=%d\n", dev->interrupts, dfifo_rx_len);
     }
 #endif
+*/
 #if ENABLE_DEBUG & DEBUG_ISR
-	if ((status[ATA8510_EVENTS] & ATA8510_EVENTS_EOTA) && (mystate8510==ATA8510_STATE_TX_ON)) {
+	if ((dev->status[ATA8510_EVENTS] & ATA8510_EVENTS_EOTA) && (mystate8510==ATA8510_STATE_TX_ON)) {
        DEBUG("_isr#%d: new state after TX: %d\n", dev->interrupts, ata8510_get_state(dev));
     }
     DEBUG("\n");
 #endif
+
+    // EOTA event
+	if (dev->status[ATA8510_EVENTS] & ATA8510_EVENTS_EOTA) {
+	    switch (mystate8510) {
+            case ATA8510_STATE_TX_ON:
+                netdev->event_callback(netdev, NETDEV2_EVENT_TX_COMPLETE);
+                break;
+
+		    case ATA8510_STATE_POLLING:
+                netdev->event_callback(netdev, NETDEV2_EVENT_RX_COMPLETE);
+                break;
+        }
+    }
+
 }
