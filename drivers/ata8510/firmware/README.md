@@ -8,3 +8,7 @@ avrdude -c atmelice_isp -p ata8510 -C +ata8510.conf -U eeprom:w:firmware.hex:i
 Tested with:
 - Debian Jessie avrdude 6.1-2
 - avrdude 6.3 (from http://www.nongnu.org/avrdude/)
+
+BUGS:
+- after flashing, the USBHID driver is left in an unknown state; you can detach
+  and reattach the programmer, or use the provided flash.sh script to reset it.
