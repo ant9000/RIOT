@@ -35,10 +35,20 @@
 
 #define SAMD21_I2C_TIMEOUT  (65535)
 
+#define CPU_MODEL_SAML21 (CPU_MODEL_SAML21E18A || CPU_MODEL_SAML21G18A || \
+    CPU_MODEL_SAML21J18A || CPU_MODEL_SAML21E15B || CPU_MODEL_SAML21E16B || \
+    CPU_MODEL_SAML21E17B || CPU_MODEL_SAML21E18B || CPU_MODEL_SAML21G16B || \
+    CPU_MODEL_SAML21G17B || CPU_MODEL_SAML21G18B || CPU_MODEL_SAML21J16B || \
+    CPU_MODEL_SAML21J17B || CPU_MODEL_SAML21J18B)
+
 #define BUSSTATE_UNKNOWN SERCOM_I2CM_STATUS_BUSSTATE(0)
 #define BUSSTATE_IDLE SERCOM_I2CM_STATUS_BUSSTATE(1)
 #define BUSSTATE_OWNER SERCOM_I2CM_STATUS_BUSSTATE(2)
 #define BUSSTATE_BUSY SERCOM_I2CM_STATUS_BUSSTATE(3)
+
+#if CPU_MODEL_SAML21
+#define SERCOM_I2CM_CTRLA_MODE_I2C_MASTER SERCOM_I2CM_CTRLA_MODE(5)
+#endif
 
 /* static function definitions */
 static void _i2c_poweron(SercomI2cm *sercom);
@@ -105,9 +115,23 @@ int i2c_init_master(i2c_t dev, i2c_speed_t speed)
     while(I2CSercom->SYNCBUSY.reg & SERCOM_I2CM_SYNCBUSY_MASK) {}
 
     /* Turn on power manager for sercom */
+#if CPU_MODEL_SAML21
+    /* OK for SERCOM0-4 */
+    MCLK->APBCMASK.reg |= (MCLK_APBCMASK_SERCOM0 << (sercom_gclk_id - SERCOM0_GCLK_ID_CORE));
+#else
     PM->APBCMASK.reg |= (PM_APBCMASK_SERCOM0 << (sercom_gclk_id - GCLK_CLKCTRL_ID_SERCOM0_CORE_Val));
+#endif
 
     /* I2C using CLK GEN 0 */
+#if CPU_MODEL_SAML21
+    GCLK->PCHCTRL[sercom_gclk_id].reg = (GCLK_PCHCTRL_CHEN |
+                         GCLK_PCHCTRL_GEN_GCLK0  );
+    while (GCLK->SYNCBUSY.bit.GENCTRL) {}
+
+    GCLK->PCHCTRL[sercom_gclk_id_slow].reg = (GCLK_PCHCTRL_CHEN |
+                         GCLK_PCHCTRL_GEN_GCLK0  );
+    while (GCLK->SYNCBUSY.bit.GENCTRL) {}
+#else
     GCLK->CLKCTRL.reg = (GCLK_CLKCTRL_CLKEN |
                          GCLK_CLKCTRL_GEN_GCLK0 |
                          GCLK_CLKCTRL_ID(sercom_gclk_id));
@@ -117,6 +141,7 @@ int i2c_init_master(i2c_t dev, i2c_speed_t speed)
                          GCLK_CLKCTRL_GEN_GCLK0 |
                          GCLK_CLKCTRL_ID(sercom_gclk_id_slow));
     while (GCLK->STATUS.bit.SYNCBUSY) {}
+#endif
 
 
     /* Check if module is enabled. */
