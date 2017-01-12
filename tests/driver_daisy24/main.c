@@ -117,7 +117,7 @@ int cmd_button_states(int argc, char **argv)
     int res;
 
     res = daisy24_read_button_states(&dev);
-    if (res < 1) {
+    if (res < 0) {
         puts("Error: no bytes were read");
         return 1;
     }
