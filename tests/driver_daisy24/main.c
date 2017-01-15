@@ -103,7 +103,7 @@ int cmd_write(int argc, char **argv)
         return 1;
     }
 
-    length = strlen(argv[1]); 
+    length = strlen(argv[1]);
     res = daisy24_write(&dev, argv[1], length);
     if (res < 0) {
         puts("Error: no bytes were written");
