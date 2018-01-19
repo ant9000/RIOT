@@ -52,6 +52,7 @@ typedef struct {
     uint8_t ext_addr;       /**< the extender's slave address on the I2C bus */
     bool initialized;       /**< monitor status, true if monitor is initialized */
     uint8_t buttons;        /**< to keep the button state */
+    bool backlight;         /**< backlight state */
 } daisy24_t;
 
 /**

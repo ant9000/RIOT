@@ -80,13 +80,14 @@ int daisy24_backlight(daisy24_t *dev, bool state)
         return -1;
     }
     i2c_acquire(dev->i2c);
-    res = i2c_write_byte(dev->i2c, dev->ext_addr, state ? 16 : 0);
+    res = i2c_write_byte(dev->i2c, dev->ext_addr, state ? 0x10 : 0x00);
     if (res < 0) {
         DEBUG("Error: no bytes were written\n");
         i2c_release(dev->i2c);
         return -1;
     }
     i2c_release(dev->i2c);
+    dev->backlight=state;
     return 0;
 }
 
@@ -170,7 +171,7 @@ int daisy24_read_buttons(daisy24_t *dev)
         DEBUG("Error: no I2C device initialized\n");
         return -1;
     }
-    state = 0xFF;
+    state = 0xFF - (dev->backlight?0x00:0x10);
     i2c_acquire(dev->i2c);
     res = i2c_write_byte(dev->i2c, dev->ext_addr, state);
     if (res < 0) {
