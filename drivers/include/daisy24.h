@@ -33,6 +33,16 @@ extern "C"
 {
 #endif
 
+#define DAISY24_BUTTON_A  1  /* Keypad: */
+#define DAISY24_BUTTON_B  2  /*         */
+#define DAISY24_BUTTON_C  8  /*  A  B   */
+#define DAISY24_BUTTON_D  4  /*  C  D   */
+
+#define DAISY24_BUTTON_A_PRESSED(buttons)  ((buttons) & DAISY24_BUTTON_A ? 1 : 0)
+#define DAISY24_BUTTON_B_PRESSED(buttons)  ((buttons) & DAISY24_BUTTON_B ? 1 : 0)
+#define DAISY24_BUTTON_C_PRESSED(buttons)  ((buttons) & DAISY24_BUTTON_C ? 1 : 0)
+#define DAISY24_BUTTON_D_PRESSED(buttons)  ((buttons) & DAISY24_BUTTON_D ? 1 : 0)
+
 /**
  * @brief Device descriptor for Daisy24 LCD device.
  */
@@ -41,7 +51,7 @@ typedef struct {
     uint8_t lcd_addr;       /**< the LCD's slave address on the I2C bus */
     uint8_t ext_addr;       /**< the extender's slave address on the I2C bus */
     bool initialized;       /**< monitor status, true if monitor is initialized */
-    bool buttons[4];        /**< to keep the button state */
+    uint8_t buttons;        /**< to keep the button state */
 } daisy24_t;
 
 /**
@@ -110,7 +120,7 @@ int daisy24_write(daisy24_t *dev, char *str, uint8_t len);
  * @return                  0 on success
  * @return                  -1 on error
  */
-int daisy24_read_button_states(daisy24_t *dev);
+int daisy24_read_buttons(daisy24_t *dev);
 
 #ifdef __cplusplus
 }

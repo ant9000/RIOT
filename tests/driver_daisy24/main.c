@@ -112,17 +112,20 @@ int cmd_write(int argc, char **argv)
     return 0;
 }
 
-int cmd_button_states(int argc, char **argv)
+int cmd_buttons(int argc, char **argv)
 {
     int res;
 
-    res = daisy24_read_button_states(&dev);
+    res = daisy24_read_buttons(&dev);
     if (res < 0) {
         puts("Error: no bytes were read");
         return 1;
     }
-    printf("button states: A=%d B=%d C=%d D=%d\n",
-        dev.buttons[0], dev.buttons[1], dev.buttons[2], dev.buttons[3]
+    printf("buttons: A=%d B=%d C=%d D=%d\n",
+        DAISY24_BUTTON_A_PRESSED(dev.buttons),
+        DAISY24_BUTTON_B_PRESSED(dev.buttons),
+        DAISY24_BUTTON_C_PRESSED(dev.buttons),
+        DAISY24_BUTTON_D_PRESSED(dev.buttons)
     );
 
     return 0;
@@ -135,7 +138,7 @@ static const shell_command_t shell_commands[] = {
     { "c", "clear screen", cmd_clear },
     { "p", "set position", cmd_set_position },
     { "w", "write string", cmd_write },
-    { "s", "read button states", cmd_button_states },
+    { "s", "read button states", cmd_buttons },
     { NULL, NULL, NULL }
 };
 

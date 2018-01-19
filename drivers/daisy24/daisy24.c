@@ -161,7 +161,7 @@ int daisy24_write(daisy24_t *dev, char *str, uint8_t len)
     return 0;
 }
 
-int daisy24_read_button_states(daisy24_t *dev)
+int daisy24_read_buttons(daisy24_t *dev)
 {
     int res;
     uint8_t state;
@@ -187,12 +187,12 @@ int daisy24_read_button_states(daisy24_t *dev)
     i2c_release(dev->i2c);
     state &= 0x0F;
     state ^= 0x0F;
-    dev->buttons[0] = state&1?1:0;
-    dev->buttons[1] = state&2?1:0;
-    dev->buttons[2] = state&8?1:0;
-    dev->buttons[3] = state&4?1:0;
-    DEBUG("button states: A=%d B=%d C=%d D=%d\n",
-        dev->buttons[0], dev->buttons[1], dev->buttons[2], dev->buttons[3]
+    dev->buttons = state;
+    DEBUG("buttons: A=%d B=%d C=%d D=%d\n",
+        DAISY24_BUTTON_A_PRESSED(dev->buttons),
+        DAISY24_BUTTON_B_PRESSED(dev->buttons),
+        DAISY24_BUTTON_C_PRESSED(dev->buttons),
+        DAISY24_BUTTON_D_PRESSED(dev->buttons)
     );
     return 0;
 }
