@@ -30,7 +30,7 @@ int daisy24_init(daisy24_t *dev, i2c_t i2c, uint8_t lcd_address, uint8_t ext_add
 {
     int i, res;
     uint8_t data[2];
-    uint8_t lcd_init[] = { 0x38, 0x39, 0x14, 0x72, 0x54, 0x6F, 0x0C };
+    uint8_t lcd_init[] = { 0x38, 0x39, 0x14, 0x72, 0x54, 0x6F, 0x0C, 0x01 };
 
     /* write device descriptor */
     dev->i2c = i2c;
@@ -51,10 +51,8 @@ int daisy24_init(daisy24_t *dev, i2c_t i2c, uint8_t lcd_address, uint8_t ext_add
         return -1;
     }
     DEBUG("I2C_0 successfully initialized as master!\n");
-    i2c_release(dev->i2c);
 
     /* LCD init */
-    i2c_acquire(dev->i2c);
     for(i=0;i<sizeof(lcd_init);i++){
       data[0] = 0;
       data[1] = lcd_init[i];
@@ -65,9 +63,19 @@ int daisy24_init(daisy24_t *dev, i2c_t i2c, uint8_t lcd_address, uint8_t ext_add
         return -1;
       }
     }
+
+    /* Backlight on */
+    res = i2c_write_byte(dev->i2c, dev->ext_addr, 0x10);
+    if (res < 0) {
+        DEBUG("Error: Init: cannot write initial config to device\n");
+        i2c_release(dev->i2c);
+        return -1;
+    }
+
     i2c_release(dev->i2c);
 
     dev->initialized = true;
+    dev->backlight = true;
     return 0;
 }
 
