@@ -40,8 +40,8 @@
 #define DEBUG_SEND            0x10
 #define DEBUG_RECV            0x20
 
-//#define ENABLE_DEBUG      (0)
-#define ENABLE_DEBUG     (DEBUG_ISR | DEBUG_ISR_EVENTS | DEBUG_ISR_EVENTS_TRX | DEBUG_SEND | DEBUG_RECV | DEBUG_PKT_DUMP)
+#define ENABLE_DEBUG      (0)
+//#define ENABLE_DEBUG     (DEBUG_ISR | DEBUG_ISR_EVENTS | DEBUG_ISR_EVENTS_TRX | DEBUG_SEND | DEBUG_RECV | DEBUG_PKT_DUMP)
 #include "debug.h"
 
 #ifdef ENABLE_DEBUG
@@ -494,7 +494,6 @@ static int _recv(netdev2_t *netdev, void *buf, size_t len, void *info)
             DEBUG("_recv: no RSSI values read\n");
         }
     }
-printf("_recv: %d\n", pkt_len);
     return pkt_len;
 }
 
