@@ -36,7 +36,7 @@ int cmd_init(int argc, char **argv)
 {
     int res;
 
-    res = daisy24_init(&dev, I2C_0, LCD_ADDR, EXT_ADDR);
+    res = daisy24_init(&dev, I2C_0, LCD_ADDR, EXT_ADDR, true);
     if (res) {
         puts("Error: Init: Given device not available");
         return 1;

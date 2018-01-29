@@ -144,6 +144,7 @@ void recv(netdev2_t *dev)
     int i;
 
     data_len = dev->driver->recv(dev, buffer, sizeof(buffer), &rx_info);
+    if(data_len==0) return;
 #if ENABLE_DEBUG
     DEBUG(
         "RECV %d bytes on service %d, channel %d:\n",
@@ -210,7 +211,7 @@ int main(void)
         return 1;
     }
 
-    res = daisy24_init(&_lcd, I2C_0, LCD_ADDR, EXT_ADDR);
+    res = daisy24_init(&_lcd, I2C_0, LCD_ADDR, EXT_ADDR, true);
     if (res) {
         printf("No LCD found.\n");
         lcd = NULL;

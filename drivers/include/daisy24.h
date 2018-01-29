@@ -62,11 +62,12 @@ typedef struct {
  * @param[in]  i2c          I2C bus the LCD is connected to
  * @param[in]  lcd_address  LCD's I2C slave address
  * @param[in]  ext_address  extender's I2C slave address
+ * @param[in]  init_i2c     true to initialize I2C bus as master
  *
  * @return                  0 on success
  * @return                  -1 on error
  */
-int daisy24_init(daisy24_t *dev, i2c_t i2c, uint8_t lcd_address, uint8_t ext_address);
+int daisy24_init(daisy24_t *dev, i2c_t i2c, uint8_t lcd_address, uint8_t ext_address, bool init_i2c);
 
 /**
  * @brief Control the Daisy24 LCD backlight.

@@ -26,7 +26,7 @@
 #define ENABLE_DEBUG    (0)
 #include "debug.h"
 
-int daisy24_init(daisy24_t *dev, i2c_t i2c, uint8_t lcd_address, uint8_t ext_address)
+int daisy24_init(daisy24_t *dev, i2c_t i2c, uint8_t lcd_address, uint8_t ext_address, bool init_i2c)
 {
     int i, res;
     uint8_t data[2];
@@ -39,18 +39,21 @@ int daisy24_init(daisy24_t *dev, i2c_t i2c, uint8_t lcd_address, uint8_t ext_add
     dev->initialized = false;
 
     i2c_acquire(dev->i2c);
-    res = i2c_init_master(dev->i2c, I2C_SPEED_NORMAL);
-    if (res == -1) {
-        DEBUG("Error: Init: Given device not available\n");
-        i2c_release(dev->i2c);
-        return -1;
+
+    if(init_i2c){
+        res = i2c_init_master(dev->i2c, I2C_SPEED_NORMAL);
+        if (res == -1) {
+            DEBUG("Error: Init: Given device not available\n");
+            i2c_release(dev->i2c);
+            return -1;
+        }
+        else if (res == -2) {
+            DEBUG("Error: Init: Unsupported speed value I2C_SPEED_NORMAL\n");
+            i2c_release(dev->i2c);
+            return -1;
+        }
+        DEBUG("I2C_0 successfully initialized as master!\n");
     }
-    else if (res == -2) {
-        DEBUG("Error: Init: Unsupported speed value I2C_SPEED_NORMAL\n");
-        i2c_release(dev->i2c);
-        return -1;
-    }
-    DEBUG("I2C_0 successfully initialized as master!\n");
 
     /* LCD init */
     for(i=0;i<sizeof(lcd_init);i++){
