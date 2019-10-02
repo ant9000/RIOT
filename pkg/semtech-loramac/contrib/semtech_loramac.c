@@ -927,3 +927,15 @@ uint8_t semtech_loramac_recv(semtech_loramac_t *mac)
     return (uint8_t)msg.content.value;
 }
 #endif
+
+void semtech_loramac_set_join_state(semtech_loramac_t *mac, bool joined)
+{
+    DEBUG("[semtech-loramac] set join state ? %d\n", joined);
+
+    mutex_lock(&mac->lock);
+    MibRequestConfirm_t mibReq;
+    mibReq.Type = MIB_NETWORK_JOINED;
+    mibReq.Param.IsNetworkJoined = joined;
+    LoRaMacMibSetRequestConfirm(&mibReq);
+    mutex_unlock(&mac->lock);
+}

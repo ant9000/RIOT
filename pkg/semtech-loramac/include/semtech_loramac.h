@@ -563,6 +563,11 @@ void semtech_loramac_save_config(semtech_loramac_t *mac);
 void semtech_loramac_erase_config(void);
 #endif
 
+/**
+ * @brief   Set the join state - only needed for external serialization
+ */
+void semtech_loramac_set_join_state(semtech_loramac_t *mac, bool joined);
+
 #ifdef __cplusplus
 }
 #endif
