@@ -1,1 +1,7 @@
-include $(RIOTBOARD)/common/makefiles/stdio_cdc_acm.dep.mk
+ifeq (,$(filter stdio_% slipdev_stdio,$(USEMODULE)))
+  include $(RIOTBOARD)/common/makefiles/stdio_cdc_acm.dep.mk
+endif
+
+ifneq (,$(filter netdev_default,$(USEMODULE)))
+  USEMODULE += ata8510
+endif
