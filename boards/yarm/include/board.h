@@ -28,6 +28,22 @@ extern "C" {
 #endif
 
 /**
+ * @brief   ATA8510 will be driven via SPI at 200KHZ
+ */
+#ifndef SPI_CLK_200KHZ
+#define SPI_CLK_200KHZ 200000U
+#endif
+/**
+ * @brief   Microchip ATA8510 configuration
+ */
+#define ATA8510_PARAMS   { .spi = SPI_DEV(0),               \
+                           .spi_clk = SPI_CLK_200KHZ,       \
+                           .cs_pin = (GPIO_PIN(PA, 5)),     \
+                           .int_pin = (GPIO_PIN(PA, 14)),   \
+                           .sleep_pin = (GPIO_PIN(PA, 27)), \
+                           .reset_pin = (GPIO_PIN(PA, 15)) }
+
+/**
  * @brief   Initialize board specific hardware, including clock, LEDs and std-IO
  */
 void board_init(void);

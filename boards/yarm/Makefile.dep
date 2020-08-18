@@ -1,3 +1,7 @@
 ifeq (,$(filter stdio_% slipdev_stdio,$(USEMODULE)))
   USEMODULE += stdio_cdc_acm
 endif
+
+ifneq (,$(filter netdev_default,$(USEMODULE)))
+  USEMODULE += ata8510
+endif
