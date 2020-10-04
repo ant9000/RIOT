@@ -135,9 +135,9 @@ static const i2c_conf_t i2c_config[] = {
  * @name    RTC configuration
  * @{
  */
-#define EXTERNAL_OSC32_SOURCE                    1
+#define EXTERNAL_OSC32_SOURCE                    0
 #define INTERNAL_OSC32_SOURCE                    0
-#define ULTRA_LOW_POWER_INTERNAL_OSC_SOURCE      0
+#define ULTRA_LOW_POWER_INTERNAL_OSC_SOURCE      1
 /** @} */
 
 /**
