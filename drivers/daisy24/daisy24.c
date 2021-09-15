@@ -28,7 +28,8 @@
 
 int daisy24_init(daisy24_t *dev, i2c_t i2c, uint8_t lcd_address, uint8_t ext_address)
 {
-    int i, res;
+    int res;
+    size_t i;
     uint8_t data[2];
     uint8_t lcd_init[] = { 0x38, 0x39, 0x14, 0x72, 0x54, 0x6F, 0x0C };
 
@@ -38,27 +39,12 @@ int daisy24_init(daisy24_t *dev, i2c_t i2c, uint8_t lcd_address, uint8_t ext_add
     dev->ext_addr = ext_address;
     dev->initialized = false;
 
-    i2c_acquire(dev->i2c);
-    res = i2c_init_master(dev->i2c, I2C_SPEED_NORMAL);
-    if (res == -1) {
-        DEBUG("Error: Init: Given device not available\n");
-        i2c_release(dev->i2c);
-        return -1;
-    }
-    else if (res == -2) {
-        DEBUG("Error: Init: Unsupported speed value I2C_SPEED_NORMAL\n");
-        i2c_release(dev->i2c);
-        return -1;
-    }
-    DEBUG("I2C_0 successfully initialized as master!\n");
-    i2c_release(dev->i2c);
-
     /* LCD init */
     i2c_acquire(dev->i2c);
     for(i=0;i<sizeof(lcd_init);i++){
       data[0] = 0;
       data[1] = lcd_init[i];
-      res = i2c_write_bytes(dev->i2c, dev->lcd_addr, data, 2);
+      res = i2c_write_bytes(dev->i2c, dev->lcd_addr, data, 2, 0);
       if (res != 2) {
         DEBUG("Error: Init: cannot write initial config to device\n");
         i2c_release(dev->i2c);
@@ -80,7 +66,7 @@ int daisy24_backlight(daisy24_t *dev, bool state)
         return -1;
     }
     i2c_acquire(dev->i2c);
-    res = i2c_write_byte(dev->i2c, dev->ext_addr, state ? 16 : 0);
+    res = i2c_write_byte(dev->i2c, dev->ext_addr, state ? 16 : 0, 0);
     if (res < 0) {
         DEBUG("Error: no bytes were written\n");
         i2c_release(dev->i2c);
@@ -103,7 +89,7 @@ int daisy24_clear(daisy24_t *dev)
     data[0] = 0;
     data[1] = 0x01;
     i2c_acquire(dev->i2c);
-    res = i2c_write_bytes(dev->i2c, dev->lcd_addr, data, 2);
+    res = i2c_write_bytes(dev->i2c, dev->lcd_addr, data, 2, 0);
     if (res < 0) {
         DEBUG("Error: no bytes were written\n");
         i2c_release(dev->i2c);
@@ -126,7 +112,7 @@ int daisy24_set_position(daisy24_t *dev, uint8_t x, uint8_t y)
     data[0] = 0;
     data[1] = 0x80 + (y*0x40) + x;
     i2c_acquire(dev->i2c);
-    res = i2c_write_bytes(dev->i2c, dev->lcd_addr, data, 2);
+    res = i2c_write_bytes(dev->i2c, dev->lcd_addr, data, 2, 0);
     if (res < 0) {
         DEBUG("Error: no bytes were written\n");
         i2c_release(dev->i2c);
@@ -150,7 +136,7 @@ int daisy24_write(daisy24_t *dev, char *str, uint8_t len)
     for(i=0;i<len;i++){
         data[0] = 0x40;
         data[1] = str[i];
-        res = i2c_write_bytes(dev->i2c, dev->lcd_addr, data, 2);
+        res = i2c_write_bytes(dev->i2c, dev->lcd_addr, data, 2, 0);
         if (res < 0) {
             DEBUG("Error: no bytes were written\n");
             i2c_release(dev->i2c);
@@ -172,13 +158,13 @@ int daisy24_read_button_states(daisy24_t *dev)
     }
     state = 0xFF;
     i2c_acquire(dev->i2c);
-    res = i2c_write_byte(dev->i2c, dev->ext_addr, state);
+    res = i2c_write_byte(dev->i2c, dev->ext_addr, state, 0);
     if (res < 0) {
         DEBUG("Error: no bytes were written\n");
         i2c_release(dev->i2c);
         return -1;
     }
-    res = i2c_read_byte(dev->i2c, dev->ext_addr, &state);
+    res = i2c_read_byte(dev->i2c, dev->ext_addr, &state, 0);
     if (res < 1) {
         DEBUG("Error: no bytes were written\n");
         i2c_release(dev->i2c);

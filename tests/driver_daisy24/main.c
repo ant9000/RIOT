@@ -34,9 +34,12 @@ static daisy24_t dev;
 
 int cmd_init(int argc, char **argv)
 {
+    (void)argc;
+    (void)argv;
+
     int res;
 
-    res = daisy24_init(&dev, I2C_0, LCD_ADDR, EXT_ADDR);
+    res = daisy24_init(&dev, I2C_DEV(0), LCD_ADDR, EXT_ADDR);
     if (res) {
         puts("Error: Init: Given device not available");
         return 1;
@@ -65,6 +68,9 @@ int cmd_backlight(int argc, char **argv)
 
 int cmd_clear(int argc, char **argv)
 {
+    (void)argc;
+    (void)argv;
+
     int res;
 
     res = daisy24_clear(&dev);
@@ -114,6 +120,9 @@ int cmd_write(int argc, char **argv)
 
 int cmd_button_states(int argc, char **argv)
 {
+    (void)argc;
+    (void)argv;
+
     int res;
 
     res = daisy24_read_button_states(&dev);
