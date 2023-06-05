@@ -23,7 +23,6 @@
 #include <string.h>
 
 #include "shell.h"
-#include "shell_commands.h"
 #include "ps.h"
 #include "od.h"
 

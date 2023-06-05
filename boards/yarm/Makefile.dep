@@ -1,5 +1,5 @@
 ifeq (,$(filter stdio_% slipdev_stdio,$(USEMODULE)))
-  include $(RIOTBOARD)/common/makefiles/stdio_cdc_acm.dep.mk
+  USEMODULE += stdio_cdc_acm
 endif
 
 ifneq (,$(filter netdev_default,$(USEMODULE)))

@@ -74,9 +74,7 @@ static void _irq_handler(void *arg)
 static void _send_command(ata8510_t *dev, const void *out,
                           void *in, size_t len)
 {
-    if (spi_acquire(SPIDEV, CSPIN, SPI_MODE_0, dev->params.spi_clk) < 0) {
-        DEBUG("[ata8510] ERROR: Cannot acquire SPI bus!\n");
-    }
+    spi_acquire(SPIDEV, CSPIN, SPI_MODE_0, dev->params.spi_clk);
     gpio_clear(CSPIN);
     xtimer_usleep(1);
     spi_transfer_bytes(SPIDEV, SPI_CS_UNDEF, true, out, in, len);

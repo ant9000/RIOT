@@ -4,7 +4,7 @@ DEVHELP ?= 1
 include ../Makefile.tests_common
 
 USEMODULE += shell
-USEMODULE += shell_commands
+USEMODULE += shell_cmds_default
 USEMODULE += ps
 USEMODULE += od_string
 
