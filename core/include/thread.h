@@ -6,6 +6,8 @@
  * directory for more details.
  */
 
+#pragma once
+
 /**
  * @defgroup    core_thread Threading
  * @ingroup     core
@@ -116,11 +118,11 @@
  * @author      Kaspar Schleiser <kaspar@schleiser.de>
  */
 
-#ifndef THREAD_H
-#define THREAD_H
+#include <stdbool.h>
 
-#include "clist.h"
 #include "cib.h"
+#include "clist.h"
+#include "compiler_hints.h"
 #include "msg.h"
 #include "sched.h"
 #include "thread_config.h"
@@ -267,9 +269,9 @@ struct _thread {
  * @param[in] name      a human readable descriptor for the thread
  *
  * @return              PID of newly created task on success
- * @return              -EINVAL, if @p priority is greater than or equal to
- *                      @ref SCHED_PRIO_LEVELS
- * @return              -EOVERFLOW, if there are too many threads running already
+ * @retval  -EINVAL     @p priority is greater than or equal to
+ *                      @ref SCHED_PRIO_LEVELS or @p stacksize is too small
+ * @retval  -EOVERFLOW  there are too many threads running already
  */
 kernel_pid_t thread_create(char *stack,
                            int stacksize,
@@ -282,8 +284,9 @@ kernel_pid_t thread_create(char *stack,
 /**
  * @brief       Retrieve a thread control block by PID.
  * @pre         @p pid is valid
- * @param[in]   pid   Thread to retrieve.
- * @return      `NULL` if the PID is invalid or there is no such thread.
+ * @param[in]   pid         Thread to retrieve.
+ * @return      The thread identified by @p pid
+ * @retval      `NULL`      no thread at the given valid PID is active.
  */
 static inline thread_t *thread_get_unchecked(kernel_pid_t pid)
 {
@@ -508,11 +511,15 @@ void thread_print_stack(void);
  *
  * @param[in] thread    The thread to check for
  *
- * @return  `== 0`, if @p thread has no initialized message queue
- * @return  `!= 0`, if @p thread has its message queue initialized
+ * @pre     @p thread is not `NULL` and the thread corresponding to the thread
+ *          control block @p thread points to (still) exists
+ *
+ * @retval  false    @p thread has no initialized message queue
+ * @retval  true     @p thread has its message queue initialized
  */
-static inline int thread_has_msg_queue(const volatile struct _thread *thread)
+static inline bool thread_has_msg_queue(const thread_t *thread)
 {
+    assume(thread != NULL);
 #if defined(MODULE_CORE_MSG) || defined(DOXYGEN)
     return (thread->msg_array != NULL);
 #else
@@ -660,4 +667,3 @@ static inline uintptr_t thread_measure_stack_free(const thread_t *thread)
 #endif
 
 /** @} */
-#endif /* THREAD_H */

@@ -47,7 +47,7 @@ function _programmers {
         "mspdebug:for MSP430 boards"
         "goodfet:for some MSP430 boards"
         "uf2conv:program via UF2 bootloader (except RP2040)"
-        "elf2uf2:program via UF2 bootloader (RP2040)"
+        "picotool:program via UF2 bootloader (Raspberry Pi Pico Devices)"
         "cpy2remed:program via ST-Link using filesystem disk interface"
         "adafruit-nrfutil:program via Adafruits nRF5x bootloader"
         "bmp:Black Magic Probe"
@@ -93,9 +93,9 @@ function _riot {
         "info-build:show details to debug the build"
         "info-build-json:show details of the build as JSON"
         "info-buildsize:print the size of the firmware for the given board"
-        "info-buildsizes:print the size of the firmware for every supported board"
+	"info-buildsizes-diff:compare the size of two firmware builds for two given directories"
         "info-cpu:print the CPU family for the given board"
-        "info-features-missing:list features missing by the given baord in regard to the given app"
+        "info-features-missing:list features missing by the given board in regard to the given app"
         "info-features-provided:list features provided by the given board"
         "info-features-required:list features required by the given app"
         "info-features-used:list features of the given board used by the given app"
@@ -131,6 +131,7 @@ function _riot {
         'PROGRAMMER[Select the programmer software to flash (debug) with]:programmer:_programmers'
         'OPENOCD_DEBUG_ADAPTER[Select the programmer hardware to use with OpenOCD]:hw_programmer:_hw_programmers'
         'OPENOCD_RESET_USE_CONNECT_ASSERT_SRST[Let OpenOCD attach while reset signal is asserted]:bool:_bools'
+        'STATIC_ANALYSIS[Enable static analysis for modules that claim support]:bool:_bools'
     )
 
     _values -w 'variables' $vars

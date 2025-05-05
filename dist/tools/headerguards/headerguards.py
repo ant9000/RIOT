@@ -43,10 +43,18 @@ def fix_headerguard(filename):
     tmp.seek(0)
 
     guard_found = 0
+    pragma_once_found = 0
+    include_next_found = 0
     guard_name = ""
     ifstack = 0
     for line in inlines:
-        if guard_found == 0:
+        if line.startswith("#pragma once"):
+            pragma_once_found += 1
+        elif line.lstrip().startswith("#pragma once"):
+            # check for lines that have leading whitespaces and add a correction
+            pragma_once_found += 1
+            line = "#pragma once\n"
+        if guard_found == 0 and pragma_once_found == 0:
             if line.startswith("#ifndef"):
                 guard_found += 1
                 guard_name = line[8:].rstrip()
@@ -66,14 +74,18 @@ def fix_headerguard(filename):
                 else:
                     guard_found += 1
                     line = "#endif /* %s */\n" % supposed
+            elif line.startswith("#include_next"):
+                include_next_found = 1
 
         tmp.write(line)
 
     tmp.seek(0)
-    if guard_found == 3:
-        for line in difflib.unified_diff(inlines, tmp.readlines(),
-                                         "%s" % filename, "%s" % filename):
-            sys.stdout.write(line)
+    if (pragma_once_found == 0 and guard_found == 3) or \
+       (pragma_once_found == 1 and guard_found == 0):
+        if include_next_found == 0:
+            for line in difflib.unified_diff(inlines, tmp.readlines(),
+                                             "%s" % filename, "%s" % filename):
+                sys.stdout.write(line)
     else:
         print("%s: no / broken header guard" % filename, file=sys.stderr)
         return False

@@ -23,7 +23,7 @@
 #include "sx126x.h"
 #include "sx126x_driver.h"
 
-#ifdef MODULE_SHIELD_LC68
+#if defined(MODULE_SHIELD_LLCC68) || defined(MODULE_SHIELD_SX1262)
 #  include "arduino_iomap.h"
 #endif
 
@@ -31,7 +31,7 @@
 extern "C" {
 #endif
 
-#ifdef MODULE_SHIELD_LLCC68
+#if defined(MODULE_SHIELD_LLCC68) || defined(MODULE_SHIELD_SX1262)
 #  define SX126X_PARAM_SPI                  ARDUINO_SPI_D11D12D13
 #  define SX126X_PARAM_SPI_NSS              ARDUINO_PIN_7
 #  define SX126X_PARAM_RESET                ARDUINO_PIN_A0
@@ -101,7 +101,8 @@ extern "C" {
 #  define SX126X_TX_PA_MODE
 #endif
 
-#define SX126X_PARAMS             { .spi = SX126X_PARAM_SPI,            \
+#ifndef SX126X_PARAMS
+#  define SX126X_PARAMS           { .spi = SX126X_PARAM_SPI,            \
                                     .nss_pin = SX126X_PARAM_SPI_NSS,    \
                                     .reset_pin = SX126X_PARAM_RESET,    \
                                     .busy_pin = SX126X_PARAM_BUSY,      \
@@ -110,6 +111,7 @@ extern "C" {
                                     .regulator = SX126X_PARAM_REGULATOR, \
                                     SX126X_SET_RF_MODE \
                                     SX126X_TX_PA_MODE}
+#endif
 
 /**@}*/
 

@@ -23,6 +23,7 @@ export NATIVEINCLUDES        # The native include paths, set by the various nati
 
 export GCC_C_INCLUDES        # system include dirs implicitly used by GCC's c compiler, only defined with TOOLCHAIN=llvm
 export GCC_CXX_INCLUDES      # system include dirs implicitly used by GCC's c++ compiler, only defined with TOOLCHAIN=llvm
+export GCC_VERSION           # version of GCC if GCC is used, empty otherwise
 
 export USEMODULE             # Sys Module dependencies of the application. Set in the application's Makefile.
 export BIN_USEMODULE         # Modules specific to bindist (see bindist.ink.mk). Set in the application's Makefile.
@@ -70,6 +71,7 @@ export CXX                   # The CXX compiler to use.
 export CCAS                  # The C compiler to use for assembler files, typically the same as CC.
 export CFLAGS                # The compiler flags. Must only ever be used with `+=`.
 export CFLAGS_CPU            # CPU architecture specific compiler flags
+export CFLAGS_STATIC_ANALYSIS# Additional CFLAGS to use when static analysis should be enabled
 export CXXUWFLAGS            # (Patterns of) flags in CFLAGS that should not be passed to CXX.
 export CXXEXFLAGS            # Additional flags that should be passed to CXX.
 export CCASUWFLAGS           # (Patterns of) flags in CFLAGS that should not be passed to CCAS.
@@ -144,3 +146,8 @@ export RUST_TARGET           # Rust's own version of the target triple / quadrup
                              #
                              # It is set by the architecture (and thus eventually the CPU), and exported to
                              # be available when building Rust modules.
+export RUSTFLAGS             # Like CFLAGS but for Rust.
+                             #
+                             # We influence those to set useful defaults that
+                             # would otherwise need to be reiterated in Cargo
+                             # files.

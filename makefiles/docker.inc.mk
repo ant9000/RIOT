@@ -5,7 +5,7 @@
 # When the docker image is updated, checks at
 # dist/tools/buildsystem_sanity_check/check.sh start complaining in CI, and
 # provide the latest values to verify and fill in.
-DOCKER_TESTED_IMAGE_REPO_DIGEST := 045fd7eb54ccba2d5f4c06e8619bb1d5cd20ef96da8c6d4b7c1f9127e70adfff
+DOCKER_TESTED_IMAGE_REPO_DIGEST := 63a87608742890b1ecfc2eea5289d32298d6696a4bd1d9d11a9da2fd32071e4f
 
 DOCKER_PULL_IDENTIFIER := docker.io/riot/riotbuild@sha256:$(DOCKER_TESTED_IMAGE_REPO_DIGEST)
 export DOCKER_IMAGE ?= $(DOCKER_PULL_IDENTIFIER)
@@ -21,7 +21,6 @@ DOCKER ?= docker
 # List of Docker-enabled make goals
 export DOCKER_MAKECMDGOALS_POSSIBLE = \
   all \
-  buildtest-indocker \
   scan-build \
   scan-build-analyze \
   tests-% \
@@ -81,6 +80,7 @@ export DOCKER_ENV_VARS += \
   RIOT_CI_BUILD \
   RIOT_VERSION \
   RIOT_VERSION_CODE \
+  RUSTFLAGS \
   SCANBUILD_ARGS \
   SCANBUILD_OUTPUTDIR \
   SIZE \

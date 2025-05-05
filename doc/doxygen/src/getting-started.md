@@ -65,6 +65,7 @@ developing for:
 * wget or curl
 * python3
 * pyserial (linux distro package often named python3-serial or py3-serial)
+* psutil (python3-psutil or py3-psutil)
 * Doxygen for building the documentation
 
 @note For each architecture a default tool for flashing and on-chip debugging is listed below - in
@@ -75,7 +76,8 @@ developing for:
 
 For example, in Ubuntu the above tools can be installed with the following command:
 
-    sudo apt install git gcc-arm-none-eabi make gcc-multilib libstdc++-arm-none-eabi-newlib openocd gdb-multiarch doxygen wget unzip python3-serial
+    sudo apt install git gcc-arm-none-eabi make gcc-multilib libstdc++-arm-none-eabi-newlib\
+     openocd gdb-multiarch doxygen wget unzip python3-serial python3-psutil
 
 @details Running `BOARD=<INSERT_TARGET_BOARD_HERE> make info-programmers-supported` in your
          application folder lists the programmers supported by RIOT for the given board.
@@ -207,7 +209,7 @@ Building and executing an example           {#building-and-executing-an-example}
 ---------------------------------
 RIOT provides a number of examples in the `examples/` directory. Every example
 has a README that documents its usage and its purpose. You can build them by
-opening a shell, navigating to an example (e.g. `examples/default`), and
+opening a shell, navigating to an example (e.g. `examples/basic/default`), and
 running:
 
 ~~~~~~~~ {.sh}
@@ -258,7 +260,7 @@ the `dist/tools/pyterm/` directory. If you choose to use another terminal
 program you can set `TERMPROG` (and if need be the `TERMFLAGS`) macros:
 
 ~~~~~~~~ {.sh}
-make -C examples/gnrc_networking/ term \
+make -C examples/networking/gnrc/gnrc_networking/ term \
     BOARD=samr21-xpro \
     TERMPROG=gtkterm \
     TERMFLAGS="-s 115200 -p /dev/ttyACM0 -e"
@@ -315,27 +317,14 @@ The user on your computer requires permission to access and use docker. There ar
 - Your OS distribution may create a group called `docker`. If so, then adding yourself to that group (and logging out and in again) should grant you permission.
 - Execute docker with sudo. This is in fact the most secure and recommended setup (see [here](https://docs.docker.com/install/linux/linux-postinstall/), [here](https://docs.docker.com/engine/security/security/#docker-daemon-attack-surface), [here](https://www.projectatomic.io/blog/2015/08/why-we-dont-let-non-root-users-run-docker-in-centos-fedora-or-rhel/) and [here](https://fosterelli.co/privilege-escalation-via-docker.html)). No extra setup steps are needed. `make` should be instructed to use `sudo` by setting `DOCKER="sudo docker"` in the command line.
 
-### Downloading and testing RIOT docker container
-
-Finally, download the pre-built RIOT Docker container:
-
-```console
-# docker pull riot/riotbuild
-```
-
-This will take a while. If it finishes correctly, you can then use the toolchains contained in the Docker container:
-(**from the riot root**):
-
-```console
-$ docker run --rm -i -t -u $UID -v $(pwd):/data/riotbuild riot/riotbuild ./dist/tools/compile_test/compile_test.py
-```
-
 Usage
 -----
 
-The RIOT build system provides support for using the Docker container to build RIOT projects, so you do not need to type the long docker command line every time:
+The RIOT build system provides support for using a Docker container containing all necessary tools to build RIOT projects.
+The latest image is automatically fetched from the Docker Hub, so you just have to execute the
+build command like this:
 
-(**from the directory you would normally run make, e.g. examples/default**)
+(**from the directory you would normally run make, e.g. examples/basic/default**)
 
 ```console
 $ make BUILD_IN_DOCKER=1
@@ -403,4 +392,4 @@ To create a bridge and two (or `count` at your option) tap interfaces:
     sudo ./dist/tools/tapsetup/tapsetup [-c [<count>]]
 ~~~~~~~
 
-A detailed example can be found in `examples/gnrc_networking`.
+A detailed example can be found in `examples/networking/gnrc/gnrc_networking`.

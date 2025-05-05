@@ -6,6 +6,9 @@
  * directory for more details.
  */
 
+#ifndef MCP47XX_H
+#define MCP47XX_H
+
 /**
  * @defgroup    drivers_mcp47xx MCP47xx DAC with I2C interface
  * @ingroup     drivers_saul
@@ -103,9 +106,6 @@
  * @author      Gunar Schorcht <gunar@schorcht.net>
  * @file
  */
-
-#ifndef MCP47XX_H
-#define MCP47XX_H
 
 #ifdef __cplusplus
 extern "C"
@@ -284,8 +284,6 @@ int mcp47xx_dac_init(mcp47xx_t *dev, uint8_t chn);
  * @param[in]   dev     descriptor of the MCP47xx DAC device
  * @param[in]   chn     channel to set
  * @param[in]   value   value to set line to
- *
- * @retval  none
  */
 void mcp47xx_dac_set(mcp47xx_t *dev, uint8_t chn, uint16_t value);
 
@@ -298,8 +296,6 @@ void mcp47xx_dac_set(mcp47xx_t *dev, uint8_t chn, uint16_t value);
  * @param[in]   dev     descriptor of the MCP47xx DAC device
  * @param[in]   chn     channel to set
  * @param[out]  value   value to set line to
- *
- * @retval  none
  */
 void mcp47xx_dac_get(mcp47xx_t *dev, uint8_t chn, uint16_t *value);
 
@@ -310,7 +306,6 @@ void mcp47xx_dac_get(mcp47xx_t *dev, uint8_t chn, uint16_t *value);
  *
  * @param[in]   dev     descriptor of the MCP47xx DAC device
  * @param[in]   chn     channel to power on
- * @retval      none
  */
 void mcp47xx_dac_poweron(mcp47xx_t *dev, uint8_t chn);
 
@@ -326,7 +321,6 @@ void mcp47xx_dac_poweron(mcp47xx_t *dev, uint8_t chn);
  *
  * @param[in]   dev     descriptor of the MCP47xx DAC device
  * @param[in]   chn     channel to power on
- * @retval      none
  */
 void mcp47xx_dac_poweroff(mcp47xx_t *dev, uint8_t chn);
 
@@ -345,5 +339,5 @@ uint8_t mcp47xx_dac_channels(mcp47xx_t *dev);
 }
 #endif
 
-#endif /* MCP47XX_H */
 /** @} */
+#endif /* MCP47XX_H */

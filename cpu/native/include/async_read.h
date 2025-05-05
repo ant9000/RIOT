@@ -7,18 +7,19 @@
  */
 
 /**
- * @ingroup     cpu_native
+ * @addtogroup cpu_native
  * @{
- *
+ */
+
+/**
  * @file
- * @brief       Multiple asynchronous read on file descriptors
- *
- * @author      Takuo Yonezawa <Yonezawa-T2@mail.dnp.co.jp>
+ * @brief  Multiple asynchronous read on file descriptors
+ * @author Takuo Yonezawa <Yonezawa-T2@mail.dnp.co.jp>
  */
 #ifndef ASYNC_READ_H
 #define ASYNC_READ_H
 
-#include <stdlib.h>
+#include <sys/types.h>
 #include <poll.h>
 
 #ifdef __cplusplus
@@ -29,7 +30,7 @@ extern "C" {
  * @brief   Maximum number of file descriptors
  */
 #ifndef ASYNC_READ_NUMOF
-#define ASYNC_READ_NUMOF 2
+#  define ASYNC_READ_NUMOF 8
 #endif
 
 /**

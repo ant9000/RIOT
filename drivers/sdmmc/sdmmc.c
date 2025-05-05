@@ -338,6 +338,8 @@ int sdmmc_card_init(sdmmc_dev_t *dev)
     assert(dev);
     assert(dev->driver);
 
+    dev->init_done = false;
+
     /* use driver's card_init function if it defines its own */
     if (dev->driver->card_init) {
         return dev->driver->card_init(dev);
@@ -1132,7 +1134,7 @@ static int _assert_card(sdmmc_dev_t *dev)
  * are deselected by this and go into the state `stby`.
  *
  * @param[in]   dev     SDIO/SD/MMC device to be used
- * @param[in]   card    Card or embedded device to be selected or deselected
+ * @param[in]   select  If `true`, card will be selected, otherwise deselected
  *
  * @return 0 on success or negative error code on error
  */
@@ -1285,7 +1287,6 @@ out:
  *      the `stby` state (deselected) when CMD10 is used to read the CID.
  *
  * @param[in]   dev     SD/MMC device to be used
- * @param[in]   card    Card or embedded device
  * @param[in]   cmd     Command to be used
  *                      (CMD2 in state `ready` or CMD10 in state `stdby')
  *
@@ -1346,7 +1347,6 @@ static int _read_cid(sdmmc_dev_t *dev, uint8_t cmd)
  *      state to read the CSD (deselected).
  *
  * @param[in]   dev     SD/MMC device to be used
- * @param[in]   card    Card or embedded device
  *
  * @return 0 on success or negative error code on error
  */

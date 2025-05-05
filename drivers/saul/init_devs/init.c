@@ -31,6 +31,10 @@ void saul_init_devs(void)
         extern void auto_init_saul_adc(void);
         auto_init_saul_adc();
     }
+    if (IS_USED(MODULE_SAUL_BAT_VOLTAGE)) {
+        extern void auto_init_saul_bat_voltage(void);
+        auto_init_saul_bat_voltage();
+    }
     if (IS_USED(MODULE_SAUL_GPIO)) {
         extern void auto_init_gpio(void);
         auto_init_gpio();
@@ -46,6 +50,10 @@ void saul_init_devs(void)
     if (IS_USED(MODULE_SAUL_NRF_VDDH)) {
         extern void auto_init_nrf_vddh(void);
         auto_init_nrf_vddh();
+    }
+    if (IS_USED(MODULE_ABP2)) {
+        extern void auto_init_abp2(void);
+        auto_init_abp2();
     }
     if (IS_USED(MODULE_AD7746)) {
         extern void auto_init_ad7746(void);
@@ -278,6 +286,10 @@ void saul_init_devs(void)
     if (IS_USED(MODULE_SEESAW_SOIL)) {
         extern void auto_init_seesaw_soil(void);
         auto_init_seesaw_soil();
+    }
+    if (IS_USED(MODULE_SEN5X)) {
+        extern void auto_init_sen5x(void);
+        auto_init_sen5x();
     }
     if (IS_USED(MODULE_SGP30)) {
         extern void auto_init_sgp30(void);

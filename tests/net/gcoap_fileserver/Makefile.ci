@@ -15,6 +15,8 @@ BOARD_INSUFFICIENT_MEMORY := \
     bluepill-stm32f030c8 \
     bluepill-stm32f103c8 \
     derfmega128 \
+    hifive1 \
+    hifive1b \
     i-nucleo-lrwan1 \
     im880b \
     m1284p \
@@ -49,7 +51,6 @@ BOARD_INSUFFICIENT_MEMORY := \
     stm32l0538-disco \
     stm32mp157c-dk2 \
     telosb \
-    waspmote-pro \
     weact-g030f6 \
     z1 \
     zigduino \

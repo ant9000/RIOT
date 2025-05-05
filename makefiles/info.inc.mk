@@ -1,4 +1,4 @@
-.PHONY: info-objsize info-buildsizes info-build info-boards-supported \
+.PHONY: info-objsize info-buildsize info-build info-boards-supported \
         info-features-missing info-modules info-cpu \
         info-features-provided info-features-required \
         info-features-used info-kconfig-variables \
@@ -35,7 +35,7 @@ info-build:
 	@echo 'APPDIR:      $(APPDIR)'
 	@echo ''
 	@echo 'supported boards:'
-	@echo $$($(MAKE) info-boards-supported)
+	@echo $$(env -i PATH='$(PATH)' LANG='$(LANG)' HOME='$(HOME)' SHELL='$(SHELL)' $(MAKE) info-boards-supported)
 	@echo ''
 	@echo 'BOARD:   $(BOARD)'
 	@echo 'CPU:     $(CPU)'

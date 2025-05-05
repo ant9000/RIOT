@@ -6,6 +6,9 @@
  * directory for more details.
  */
 
+#ifndef SX126X_H
+#define SX126X_H
+
 /**
  * @defgroup    drivers_sx126x SX1261/2/8 and LLCC68 LoRa radio driver
  * @ingroup     drivers_netdev
@@ -17,9 +20,6 @@
  *
  * @author      Alexandre Abadie <alexandre.abadie@inria.fr>
  */
-
-#ifndef SX126X_H
-#define SX126X_H
 
 #include <assert.h>
 
@@ -125,7 +125,7 @@ void sx126x_setup(sx126x_t *dev, const sx126x_params_t *params, uint8_t index);
 /**
  * @brief   Initialize the given device
  *
- * @param[inout] dev                    Device descriptor of the driver
+ * @param[in,out] dev                   Device descriptor of the driver
  *
  * @return                  0 on success
  */
@@ -305,5 +305,5 @@ void sx126x_set_lora_iq_invert(sx126x_t *dev, bool iq_invert);
 }
 #endif
 
-#endif /* SX126X_H */
 /** @} */
+#endif /* SX126X_H */

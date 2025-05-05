@@ -52,7 +52,10 @@ psa_status_t psa_location_dispatch_generate_key(const psa_key_attributes_t *attr
         if (status != PSA_SUCCESS) {
             /* In case anything goes wrong, free the key slot for reuse. */
             psa_se_drv_data_t *driver = psa_get_se_driver_data(attributes->lifetime);
-            psa_status_t abort_status = drv->key_management->p_destroy(drv_context, driver->ctx.internal.persistent_data, *slot_number);
+            psa_status_t abort_status =
+              drv->key_management->p_destroy(drv_context,
+                                             driver->ctx.internal.persistent_data,
+                                             *slot_number);
             return abort_status == PSA_SUCCESS ? status : abort_status;
         }
         return PSA_SUCCESS;
@@ -86,7 +89,10 @@ psa_status_t psa_location_dispatch_import_key( const psa_key_attributes_t *attri
         if (status != PSA_SUCCESS) {
             /* In case anything goes wrong, free the key slot for reuse. */
             psa_se_drv_data_t *driver = psa_get_se_driver_data(attributes->lifetime);
-            psa_status_t abort_status = drv->key_management->p_destroy(drv_context, driver->ctx.internal.persistent_data, *slot_number);
+            psa_status_t abort_status =
+              drv->key_management->p_destroy(drv_context,
+                                             driver->ctx.internal.persistent_data,
+                                             *slot_number);
             return abort_status == PSA_SUCCESS ? status : abort_status;
         }
         return PSA_SUCCESS;
@@ -125,7 +131,8 @@ psa_status_t psa_location_dispatch_cipher_encrypt_setup(   psa_cipher_operation_
                 return PSA_ERROR_NOT_SUPPORTED;
             }
 
-            status = drv->cipher->p_setup(drv_context, &operation->backend_ctx.se_ctx, *slot_number,
+            status = drv->cipher->p_setup(drv_context,
+                                          &operation->backend_ctx.se_ctx, *slot_number,
                                           attributes->policy.alg, PSA_CRYPTO_DRIVER_ENCRYPT);
             if (status != PSA_SUCCESS) {
                 return status;
@@ -159,19 +166,6 @@ psa_status_t psa_location_dispatch_cipher_decrypt_setup(psa_cipher_operation_t *
  *
  *          Some secure elements don't provide single part operations for cipher encryption.
  *          This is a wrapper function, to support those.
- *
- * @param   drv
- * @param   drv_context
- * @param   attributes
- * @param   alg
- * @param   direction
- * @param   slot
- * @param   input
- * @param   input_length
- * @param   output
- * @param   output_size
- * @param   output_length
- * @return  @ref psa_status_t
  */
 static psa_status_t psa_se_cipher_encrypt_decrypt(  const psa_drv_se_t *drv,
                                                     psa_drv_se_context_t *drv_context,
@@ -380,8 +374,9 @@ psa_status_t psa_location_dispatch_sign_message(const psa_key_attributes_t *attr
 {
     /* TODO: implement MODULE_PSA_SECURE_ELEMENT support */
 
-    return psa_algorithm_dispatch_sign_message(attributes, alg, slot, input, input_length, signature,
-                                            signature_size, signature_length);
+    return psa_algorithm_dispatch_sign_message(attributes, alg, slot, input,
+                                               input_length, signature,
+                                               signature_size, signature_length);
 }
 
 psa_status_t psa_location_dispatch_verify_hash(const psa_key_attributes_t *attributes,
@@ -426,8 +421,8 @@ psa_status_t psa_location_dispatch_verify_message(  const psa_key_attributes_t *
 {
     /* TODO: implement MODULE_PSA_SECURE_ELEMENT support */
 
-    return psa_algorithm_dispatch_verify_message(attributes, alg, slot, input, input_length, signature,
-                                              signature_length);
+    return psa_algorithm_dispatch_verify_message(attributes, alg, slot, input, input_length,
+                                                 signature, signature_length);
 }
 #endif /* MODULE_PSA_ASYMMETRIC */
 

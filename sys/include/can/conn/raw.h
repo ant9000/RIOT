@@ -66,11 +66,11 @@ typedef struct conn_can_raw {
 /**
  * @brief  Create can connection socket
  *
- * @param[inout] conn       CAN connection
- * @param[in] filter        list of filters to set
- * @param[in] count         number of filters in @p filter
- * @param[in] ifnum         can device Interface
- * @param[in] flags         conn flags to set (CONN_CAN_RECVONLY)
+ * @param[in,out]   conn    CAN connection
+ * @param[in]       filter  list of filters to set
+ * @param[in]       count   number of filters in @p filter
+ * @param[in]       ifnum   can device Interface
+ * @param[in]       flags   conn flags to set (CONN_CAN_RECVONLY)
  *
  * @post   @p filter must remain allocated until @p conn is closed
  *
@@ -100,7 +100,7 @@ int conn_can_raw_close(conn_can_raw_t *conn);
  * @return the number of bytes received
  * @return any other negative number in case of an error
  */
-int conn_can_raw_recv(conn_can_raw_t *conn, struct can_frame *frame, uint32_t timeout);
+int conn_can_raw_recv(conn_can_raw_t *conn, can_frame_t *frame, uint32_t timeout);
 
 /**
  * @brief  Generic can send
@@ -113,7 +113,7 @@ int conn_can_raw_recv(conn_can_raw_t *conn, struct can_frame *frame, uint32_t ti
  * @return the number of bytes sent
  * @return any other negative number in case of an error
  */
-int conn_can_raw_send(conn_can_raw_t *conn, const struct can_frame *frame, int flags);
+int conn_can_raw_send(conn_can_raw_t *conn, const can_frame_t *frame, int flags);
 
 /**
  * @brief  Set raw CAN filters

@@ -114,7 +114,7 @@ support multiple platforms are given in section
 
 ### RP2040
 
-- `elf2uf2`
+- `picotool`
 
 ### SAM
 
@@ -293,7 +293,7 @@ Procedure:
   variable or on each `make` call:
 
 ~~~~~~~~~~~~~~~~~~~
-    $ RIOT_MAKEFILES_GLOBAL_PRE=/path/to/makefile.pre make -C examples/hello-world flash term
+    $ RIOT_MAKEFILES_GLOBAL_PRE=/path/to/makefile.pre make -C examples/basic/hello-world flash term
 ~~~~~~~~~~~~~~~~~~~
 
 @note if set as an environment variable it would be a good idea to add a

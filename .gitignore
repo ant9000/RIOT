@@ -43,6 +43,8 @@ cachegrind.out*
 tags
 # GDB initialization scripts
 .gdbinit
+# GDB history (when using gdb-dashboard)
+.gdb_history
 
 # Eclipse symbol file (output from make eclipsesym)
 eclipsesym.xml
@@ -91,9 +93,6 @@ keys/
 
 # clangd language server
 .clangd/
-
-# custom clang-tidy flags, also used when using clangd language server
-.clang-tidy
 
 # Environments
 .venv

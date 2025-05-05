@@ -1,8 +1,13 @@
 #!/bin/sh
 
-ESP32_GCC_RELEASE="esp-12.2.0_20230208"
+ESP32_GCC_RELEASE="esp-14.2.0_20241119"
+ESP8266_GCC_RELEASE="esp-5.2.0_20191018"
 
-ESP32_OPENOCD_VERSION="v0.12.0-esp32-20230313"
+ESP32_OPENOCD_VERSION="v0.12.0-esp32-20241016"
+
+ESP32_QEMU_VERSION="esp-develop-9.0.0-20240606"
+
+GDB_VERSION="14.2_20240403"
 
 if [ -z "${IDF_TOOLS_PATH}" ]; then
     IDF_TOOLS_PATH="${HOME}/.espressif"
@@ -13,30 +18,39 @@ TOOLS_PATH="${IDF_TOOLS_PATH}/tools"
 export_arch()
 {
     case $1 in
-        esp32)
-            TARGET_ARCH="xtensa-esp32-elf"
+        esp8266)
+            TARGET_ARCH="xtensa-esp8266-elf"
+            ESP_GCC_RELEASE="${ESP8266_GCC_RELEASE}"
+            ;;
+        esp32|esp32s2|esp32s3)
+            TARGET_ARCH="xtensa-esp-elf"
+            ESP_GCC_RELEASE="${ESP32_GCC_RELEASE}"
             ;;
         esp32c3)
             TARGET_ARCH="riscv32-esp-elf"
-            ;;
-        esp32s2)
-            TARGET_ARCH="xtensa-esp32s2-elf"
-            ;;
-        esp32s3)
-            TARGET_ARCH="xtensa-esp32s3-elf"
+            ESP_GCC_RELEASE="${ESP32_GCC_RELEASE}"
             ;;
         *)
             echo "Unknown architecture $1"
             return
     esac
 
-    TOOLS_DIR="${TOOLS_PATH}/${TARGET_ARCH}/${ESP32_GCC_RELEASE}/${TARGET_ARCH}"
+    TOOLS_DIR="${TOOLS_PATH}/${TARGET_ARCH}/${ESP_GCC_RELEASE}/${TARGET_ARCH}"
     TOOLS_DIR_IN_PATH="$(echo $PATH | grep "${TOOLS_DIR}")"
 
-    if [ -e "${TOOLS_DIR}" ] && [ -z "${TOOLS_DIR_IN_PATH}" ]; then
+    if [ ! -e "${TOOLS_DIR}" ]; then
+        echo "${TOOLS_DIR} does not exist - please run"
+        echo "\${RIOTBASE}/dist/tools/esptools/install.sh $1"
+        return
+    fi
+
+    if [ -z "${TOOLS_DIR_IN_PATH}" ]; then
         echo "Extending PATH by ${TOOLS_DIR}/bin"
         export PATH="${TOOLS_DIR}/bin:${PATH}"
     fi
+
+    echo "To make this permanent, add this line to your ~/.bashrc or ~/.profile:"
+    echo PATH="\$PATH:${TOOLS_DIR}/bin"
 
     unset TOOLS_DIR
 }
@@ -75,10 +89,17 @@ export_qemu()
             ;;
     esac
 
+    case $1 in
+        riscv)
+            QEMU_ARCH="qemu-riscv32-softmmu"
+            ;;
+        *)
+            QEMU_ARCH="qemu-xtensa-softmmu"
+            ;;
+    esac
+
     # qemu version depends on the version of ncurses lib
-    if [ "$(ldconfig -p | grep libncursesw.so.6)" != "" ]; then
-        ESP32_QEMU_VERSION="esp-develop-20220203"
-    else
+    if [ "$(ldconfig -p | grep -c libncursesw.so.6)" == "0" ]; then
         ESP32_QEMU_VERSION="esp-develop-20210220"
     fi
 
@@ -86,7 +107,7 @@ export_qemu()
         IDF_TOOLS_PATH="${HOME}/.espressif"
     fi
 
-    TOOLS_DIR="${TOOLS_PATH}/qemu-esp32/${ESP32_QEMU_VERSION}/qemu"
+    TOOLS_DIR="${TOOLS_PATH}/${QEMU_ARCH}/${ESP32_QEMU_VERSION}/qemu"
     TOOLS_DIR_IN_PATH="$(echo $PATH | grep "${TOOLS_DIR}")"
 
     if [ -e "${TOOLS_DIR}" ] && [ -z "${TOOLS_DIR_IN_PATH}" ]; then
@@ -111,8 +132,6 @@ export_gdb()
             return
     esac
 
-    GDB_VERSION="12.1_20221002"
-
     TOOLS_DIR="${TOOLS_PATH}/${GDB_ARCH}/${GDB_VERSION}/${GDB_ARCH}"
     TOOLS_DIR_IN_PATH="$(echo $PATH | grep "${TOOLS_DIR}")"
 
@@ -127,17 +146,19 @@ export_gdb()
 if [ -z "$1" ]; then
     echo "Usage: export.sh <tool>"
     echo "       export.sh gdb <platform>"
-    echo "<tool> = all | esp32 | esp32c3 | esp32s2 | esp32s3 | gdb | openocd | qemu"
+    echo "       export.sh qemu <platform>"
+    echo "<tool> = all | esp8266 | esp32 | esp32c3 | esp32s2 | esp32s3 | gdb | openocd | qemu"
     echo "<platform> = xtensa | riscv"
 elif [ "$1" = "all" ]; then
-    ARCH_ALL="esp32 esp32c3 esp32s2 esp32s3"
+    ARCH_ALL="esp8266 esp32 esp32c3 esp32s2 esp32s3"
     for arch in ${ARCH_ALL}; do
         export_arch "$arch"
     done
     export_gdb xtensa
     export_gdb riscv
     export_openocd
-    export_qemu
+    export_qemu xtensa
+    export_qemu riscv
     export_gdb xtensa
     export_gdb riscv
 elif [ "$1" = "gdb" ]; then
@@ -149,7 +170,7 @@ elif [ "$1" = "gdb" ]; then
 elif [ "$1" = "openocd" ]; then
     export_openocd
 elif [ "$1" = "qemu" ]; then
-    export_qemu
+    export_qemu $2
 else
     export_arch $1
 fi

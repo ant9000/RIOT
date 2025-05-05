@@ -13,7 +13,7 @@ else
   endif
 endif
 
-ifeq (,$(filter stdio_%,$(USEMODULE)))
+ifneq (,$(filter stdio_default,$(USEMODULE)))
   USEMODULE += stdio_native
 endif
 
@@ -41,7 +41,7 @@ ifneq (,$(filter socket_zep,$(USEMODULE)))
 endif
 
 ifneq (,$(filter netdev_tap,$(USEMODULE)))
-  USEMODULE += netdev_legacy_api
+  USEMODULE += netdev_new_api
 endif
 
 ifneq (,$(filter libc_gettimeofday,$(USEMODULE)))
@@ -52,3 +52,5 @@ USEMODULE += periph
 
 # UART is needed by startup.c
 USEMODULE += periph_uart
+
+USEMODULE += fdcan

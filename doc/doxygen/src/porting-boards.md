@@ -29,7 +29,7 @@ makefiles. Usually a `BOARD` directory has the following structure
   |----dist/
       |----scripts
   |----board.c
-  |----doc.txt
+  |----doc.md
   |----include/
       |----periph_conf.h
       |----board.h
@@ -178,13 +178,13 @@ PROGRAMMER ?= openocd
 
 ## Timer Configurations                            {#board-timer-configurations}
 
-When using high level timers, i.e. `ztimer` there is an overhead in calling
-for @ref ztimer_sleep and @ref ztimer_set functions. This offset can be
+When using the high level timer `ztimer` there is an overhead in calling
+the @ref ztimer_sleep and @ref ztimer_set functions. This offset can be
 compensated for. It can be measured by running `tests/sys/ztimer_overhead`
 on your board, i.e:
 
 ```shell
-$ BOARD=my-new-board make -C tests/sys/ztimer_overhead
+$ BOARD=my-new-board make -C tests/sys/ztimer_overhead flash term
 main(): This is RIOT!
 ZTIMER_USEC auto_adjust params:
     ZTIMER_USEC->adjust_set = xx
@@ -211,7 +211,11 @@ The last two lines can be added as defines to the new board `board.h`:
 /** @} */
 ```
 
-## doc.txt                                                          {#board-doc}
+Alternatively, the pseudomodule @ref pseudomodule_ztimer_auto_adjust can be used
+in an application to enable automatic timer offset compensation at board startup.
+This however incurs overhead both in the text segment and at bootup time.
+
+## doc.md                                                           {#board-doc}
 
 Although not explicitly needed, if upstreamed and as a general good
 practice, this file holds all `BOARD` documentation. This can include
@@ -221,8 +225,7 @@ The documentation must be under the proper doxygen group, you can compile the
 documentation by calling `make doc` and then open the generated html file on
 any browser.
 
-```
-/**
+```md
 @defgroup    boards_foo FooBoard
 @ingroup     boards
 @brief       Support for the foo board
@@ -230,7 +233,7 @@ any browser.
 
 ### User Interface
 
-  ....
+  ...
 
 ### Using UART
 
@@ -239,8 +242,18 @@ any browser.
 ### Flashing the device
 
   ...
+```
 
-*/
+Previously documentation was contained in `doc.txt` files with C-style comment
+blocks. This style has been deprecated in favor of using `doc.md` files in
+Markdown format, which eliminates formatting and interpretation issues.
+Old style files will continually be replaced by the new format.
+
+Up to version `0.9.2` the [riotgen](https://pypi.org/project/riotgen/) tool
+will generate `doc.txt` files instead of `doc.md` files. You can upgrade it to
+the latest version with
+```sh
+pip install --upgrade riotgen
 ```
 
 # Helper tools
@@ -302,6 +315,27 @@ static const timer_conf_t timer_config[] = {
 /** @} */
 ```
 
+## New Style Common Code                                {#new-style-common-code}
+
+The common board definitions of RIOT are currently being reworked to make the
+usage of common code easier and less error prone. For example, if you want
+to use the common code for the Adafruit nRF52 Bootloader that is used
+by many of the nRF52 based boards from Adafruit, you simply have to add the
+following line to the `Makefile.dep` of your board. Everything else
+will be automatically included by the build system.
+
+```mk
+USEMODULE += boards_common_adafruit-nrf52-bootloader
+```
+
+Not all common code is migrated to the new style yet, so if you are unsure
+whether it is or not, you can check if the `boards/Makefile` already
+includes a reference to the common code you want to use. If you are still
+unsure, you can still use the @ref old-style-common-code or ask the
+community.
+
+## Old Style Common Code                                {#old-style-common-code}
+
 If you want to use common makefiles, include them at the end of the specific
 `Makefile`, e.g. for a `Makefile.features`:
 
@@ -316,6 +350,20 @@ FEATURES_PROVIDED += periph_uart
 
 include $(RIOTBOARD)/common/foo_common/Makefile.features
 ```
+
+If the common code includes source files, it might be necessary
+to explicitly include the directory in your `Makefile` so the Make system
+finds all the necessary files:
+
+```mk
+MODULE = board
+
+DIRS += $(RIOTBOARD)/common/myCommonFolder
+
+include $(RIOTBASE)/Makefile.base
+```
+
+If possible, you should use the @ref new-style-common-code though.
 
 # Boards outside of RIOTBASE                       {#boards-outside-of-riotbase}
 
@@ -337,7 +385,7 @@ specify multiple directories separated by spaces.
         |----dist/
             |----scripts
         |----board.c
-        |----doc.txt
+        |----doc.md
         |----include/
             |----periph_conf.h
             |----board.h
@@ -379,7 +427,21 @@ In this case some special considerations must be taken with the makefiles:
   `include $(RIOTBOARD)/foo-parent/Makefile.*include*`
 
 An example can be found in
-[`tests/build_system/external_board_native`](https://github.com/RIOT-OS/RIOT/tree/master/tests/build_system/external_board_native)
+[`tests/build_system/external_board_native`](https://github.com/RIOT-OS/RIOT/tree/master/tests/build_system/external_board_native).
+
+# Board names and aliases                                        {#boards-alias}
+
+New boards should be named according to
+[RDM0003](https://github.com/RIOT-OS/RIOT/blob/master/doc/memos/rdm0003.md).
+Historically, some board names have not followed this structure.
+For backwards compatibility, RIOT supports board aliases that can be used
+in place of the actual board name in the environment or Make variable `BOARD`.
+
+A list of all existing board aliases can be found in
+[`makefiles/board_alias.inc.mk](https://github.com/RIOT-OS/RIOT/blob/master/makefiles/board_alias.inc.mk).
+[`BOARD=native`](@ref boards_common_native) is a special alias in that it
+resolves to either [`native32`](@ref boards_native32) or [`native64`](@ref boards_native64)
+depending on the host architecture.
 
 # Tools                                                          {#boards-tools}
 
@@ -396,7 +458,7 @@ Some scripts and tools available to ease `BOARD` porting and testing:
 # Further reference                                         {#further-reference}
 
 - [In her blog][martines-blog], Martine Lenders documented her approach of
-  porting the @ref boards_feather-nrf52840 in February 2020.
+  porting the @ref boards_adafruit-feather-nrf52840-express in February 2020.
 - [Over at HackMD][hackmd-slstk3400a], Akshai M documented his approach of
   porting the @ref boards_slstk3400a in July 2020.
 

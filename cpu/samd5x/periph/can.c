@@ -18,11 +18,13 @@
  */
 
 #include <assert.h>
+#include <stdint.h>
 #include <string.h>
 
+#include "can/device.h"
 #include "periph/can.h"
 #include "periph/gpio.h"
-#include "can/device.h"
+#include "pm_layered.h"
 
 #define ENABLE_DEBUG 0
 #include "debug.h"
@@ -60,7 +62,8 @@ enum {
 
 typedef enum {
     MODE_INIT,
-    MODE_TEST,
+    MODE_LOOPBACK,
+    MODE_MONITOR,
 } can_mode_t;
 
 typedef struct {
@@ -107,6 +110,34 @@ static const struct can_bittiming_const bittiming_const = {
 
 static int _power_on(can_t *dev)
 {
+    /* CAN required CLK_CANx_APB and GCLK_CANx to be running and will not
+     * request any clock by itself. We can ensure both clocks to be running
+     * by preventing the MCU from entering IDLE state.
+     *
+     * The SAMD5x/SAME5x Family Data Sheet says in Section
+     * "39.6.9 Sleep Mode Operation" says:
+     *
+     * > The CAN can be configured to operate in any idle sleep mode. The CAN
+     * > cannot operate in Standby sleep mode.
+     * >
+     * > [...]
+     * >
+     * > To leave low power mode, CLK_CANx_APB and GCLK_CANx must be active
+     * > before writing CCCR.CSR to '0'. The CAN will acknowledge this by
+     * > resetting CCCR.CSA = 0. Afterwards, the application can restart CAN
+     * > communication by resetting bit CCCR.INIT.
+     *
+     * tl;dr: At most SAM0_PM_IDLE is allowed while not shutting down the CAN
+     * controller, but even that will pause communication (including RX).
+     */
+    if (IS_USED(MODULE_PM_LAYERED)) {
+        pm_block(SAM0_PM_IDLE);
+    }
+
+    if (gpio_is_valid(dev->conf->enable_pin)) {
+        gpio_write(dev->conf->enable_pin, !dev->conf->enable_pin_active_low);
+    }
+
     if (dev->conf->can == CAN0) {
         DEBUG_PUTS("CAN0 controller is used");
         MCLK->AHBMASK.reg |= MCLK_AHBMASK_CAN0;
@@ -125,6 +156,10 @@ static int _power_on(can_t *dev)
 
 static int _power_off(can_t *dev)
 {
+    if (IS_USED(MODULE_PM_LAYERED)) {
+        pm_unblock(SAM0_PM_IDLE);
+    }
+
     if (dev->conf->can == CAN0) {
         DEBUG_PUTS("CAN0 controller is used");
         MCLK->AHBMASK.reg &= ~MCLK_AHBMASK_CAN0;
@@ -136,6 +171,10 @@ static int _power_off(can_t *dev)
     else {
         DEBUG_PUTS("Unsupported CAN channel");
         return -1;
+    }
+
+    if (gpio_is_valid(dev->conf->enable_pin)) {
+        gpio_write(dev->conf->enable_pin, dev->conf->enable_pin_active_low);
     }
 
     return 0;
@@ -165,7 +204,7 @@ static int _set_mode(Can *can, can_mode_t can_mode)
             _enter_init_mode(can);
             can->CCCR.reg |= CAN_CCCR_CCE;
             break;
-        case MODE_TEST:
+        case MODE_LOOPBACK:
             DEBUG_PUTS("test mode");
             _enter_init_mode(can);
             /* CCCR.TEST and CCCR.MON can be set only when CCCR.INIT and CCCR.CCE are set */
@@ -175,6 +214,14 @@ static int _set_mode(Can *can, can_mode_t can_mode)
 #if IS_ACTIVE(CANDEV_SAMD5X_INTERNAL_LOOPBACK)
             can->CCCR.reg |= CAN_CCCR_MON;
 #endif
+            _exit_init_mode(can);
+            break;
+        case MODE_MONITOR:
+            DEBUG_PUTS("monitor mode");
+            _enter_init_mode(can);
+            /* CCCR.TEST and CCCR.MON can be set only when CCCR.INIT and CCCR.CCE are set */
+            can->CCCR.reg |= CAN_CCCR_CCE;
+            can->CCCR.reg |= CAN_CCCR_MON;
             _exit_init_mode(can);
             break;
         default:
@@ -187,15 +234,39 @@ static int _set_mode(Can *can, can_mode_t can_mode)
 
 static void _setup_clock(can_t *dev)
 {
-    if (dev->conf->can == CAN0) {
-        GCLK->PCHCTRL[CAN0_GCLK_ID].reg = GCLK_PCHCTRL_CHEN | GCLK_PCHCTRL_GEN(dev->conf->gclk_src);
+    int pchid = 0;
+    if (dev->conf->can == CAN0){
+        pchid = CAN0_GCLK_ID;
     }
-    else if (dev->conf->can == CAN1) {
-        GCLK->PCHCTRL[CAN1_GCLK_ID].reg = GCLK_PCHCTRL_CHEN | GCLK_PCHCTRL_GEN(dev->conf->gclk_src);
+    else if (dev->conf->can == CAN1){
+        pchid = CAN1_GCLK_ID;
     }
     else {
+        /* only CAN0 and CAN1 supported. When ported to MCUs with more
+         * CAN controllers, this code needs to be adapted */
         DEBUG_PUTS("CAN channel not supported");
+        assert(0);
+        return;
     }
+
+    uint32_t pchctrl = GCLK->PCHCTRL[pchid].reg;
+
+    /* disable */
+    GCLK->PCHCTRL[pchid].reg = pchctrl & (~GCLK_PCHCTRL_CHEN);
+    do {
+        pchctrl = GCLK->PCHCTRL[pchid].reg;
+    } while (pchctrl & GCLK_PCHCTRL_CHEN);
+
+    /* setup */
+    pchctrl = GCLK_PCHCTRL_GEN(dev->conf->gclk_src);
+    GCLK->PCHCTRL[pchid].reg = pchctrl;
+
+    /* enable */
+    pchctrl |= GCLK_PCHCTRL_CHEN;
+    GCLK->PCHCTRL[pchid].reg = pchctrl;
+    do {
+        pchctrl = GCLK->PCHCTRL[pchid].reg;
+    } while (!(pchctrl & GCLK_PCHCTRL_CHEN));
 }
 
 static void _set_bit_timing(can_t *dev)
@@ -294,33 +365,50 @@ void can_init(can_t *dev, const can_conf_t *conf)
 {
     dev->candev.driver = &candev_samd5x_driver;
 
-    struct can_bittiming timing = { .bitrate = CANDEV_SAMD5X_DEFAULT_BITRATE,
-                                    .sample_point = CANDEV_SAMD5X_DEFAULT_SPT };
+    struct can_bittiming timing = {
+        .bitrate = conf->bitrate ? conf->bitrate : CANDEV_SAMD5X_DEFAULT_BITRATE,
+        .sample_point = CANDEV_SAMD5X_DEFAULT_SPT
+    };
 
     uint32_t clk_freq = sam0_gclk_freq(conf->gclk_src);
     can_device_calc_bittiming(clk_freq, &bittiming_const, &timing);
 
     memcpy(&dev->candev.bittiming, &timing, sizeof(timing));
     dev->conf = conf;
+
+    if (gpio_is_valid(conf->enable_pin)) {
+        /* In case conf->enable_pin is not initialized aid debugging with a
+         * blown assertion */
+        assert((uint32_t)conf->enable_pin);
+        gpio_init(conf->enable_pin, conf->enable_pin_mode);
+        gpio_write(conf->enable_pin, conf->enable_pin_active_low);
+    }
 }
 
 static void _dump_msg_ram_section(can_t *dev)
 {
     puts("start address|\tsize of section");
-    printf("Standard filters|\t0x%08lx|\t%lu\n", (uint32_t)(dev->msg_ram_conf.std_filter),
-                                        (uint32_t)(ARRAY_SIZE(dev->msg_ram_conf.std_filter)));
-    printf("Extended filters|\t0x%08lx|\t%lu\n", (uint32_t)(dev->msg_ram_conf.ext_filter),
-                                        (uint32_t)(ARRAY_SIZE(dev->msg_ram_conf.ext_filter)));
-    printf("Rx FIFO 0|\t0x%08lx|\t%lu\n", (uint32_t)(dev->msg_ram_conf.rx_fifo_0),
-                                        (uint32_t)(ARRAY_SIZE(dev->msg_ram_conf.rx_fifo_0)));
-    printf("Rx FIFO 1|\t0x%08lx|\t%lu\n", (uint32_t)(dev->msg_ram_conf.rx_fifo_1),
-                                        (uint32_t)(ARRAY_SIZE(dev->msg_ram_conf.rx_fifo_1)));
-    printf("Rx buffer|\t0x%08lx|\t%lu\n", (uint32_t)(dev->msg_ram_conf.rx_buffer),
-                                        (uint32_t)(ARRAY_SIZE(dev->msg_ram_conf.rx_buffer)));
-    printf("Tx event FIFO|\t0x%08lx|\t%lu\n", (uint32_t)(dev->msg_ram_conf.tx_event_fifo),
-                                        (uint32_t)(ARRAY_SIZE(dev->msg_ram_conf.tx_event_fifo)));
-    printf("Tx buffer|\t0x%08lx|\t%lu\n", (uint32_t)(dev->msg_ram_conf.tx_fifo_queue),
-                                        (uint32_t)(ARRAY_SIZE(dev->msg_ram_conf.tx_fifo_queue)));
+    printf("Standard filters|\t0x%08" PRIx32 "|\t%" PRIu32 "\n",
+           (uint32_t)(dev->msg_ram_conf.std_filter),
+           (uint32_t)(ARRAY_SIZE(dev->msg_ram_conf.std_filter)));
+    printf("Extended filters|\t0x%08" PRIx32 "|\t%" PRIu32 "\n",
+           (uint32_t)(dev->msg_ram_conf.ext_filter),
+           (uint32_t)(ARRAY_SIZE(dev->msg_ram_conf.ext_filter)));
+    printf("Rx FIFO 0|\t0x%08" PRIx32 "|\t%" PRIu32 "\n",
+           (uint32_t)(dev->msg_ram_conf.rx_fifo_0),
+           (uint32_t)(ARRAY_SIZE(dev->msg_ram_conf.rx_fifo_0)));
+    printf("Rx FIFO 1|\t0x%08" PRIx32 "|\t%" PRIu32 "\n",
+           (uint32_t)(dev->msg_ram_conf.rx_fifo_1),
+           (uint32_t)(ARRAY_SIZE(dev->msg_ram_conf.rx_fifo_1)));
+    printf("Rx buffer|\t0x%08" PRIx32 "|\t%" PRIu32 "\n",
+            (uint32_t)(dev->msg_ram_conf.rx_buffer),
+            (uint32_t)(ARRAY_SIZE(dev->msg_ram_conf.rx_buffer)));
+    printf("Tx event FIFO|\t0x%08" PRIx32 "|\t%" PRIu32 "\n",
+            (uint32_t)(dev->msg_ram_conf.tx_event_fifo),
+            (uint32_t)(ARRAY_SIZE(dev->msg_ram_conf.tx_event_fifo)));
+    printf("Tx buffer|\t0x%08" PRIx32 "|\t%" PRIu32 "\n",
+            (uint32_t)(dev->msg_ram_conf.tx_fifo_queue),
+            (uint32_t)(ARRAY_SIZE(dev->msg_ram_conf.tx_fifo_queue)));
 }
 
 static int _init(candev_t *candev)
@@ -346,18 +434,18 @@ static int _init(candev_t *candev)
 
     /*Configure the start addresses of the RAM message sections */
     dev->conf->can->SIDFC.reg = CAN_SIDFC_FLSSA((uint32_t)(dev->msg_ram_conf.std_filter))
-                            | CAN_SIDFC_LSS((uint32_t)(ARRAY_SIZE(dev->msg_ram_conf.std_filter)));
+                              | CAN_SIDFC_LSS((uint32_t)(ARRAY_SIZE(dev->msg_ram_conf.std_filter)));
     dev->conf->can->XIDFC.reg = CAN_XIDFC_FLESA((uint32_t)(dev->msg_ram_conf.ext_filter))
-                            | CAN_XIDFC_LSE((uint32_t)(ARRAY_SIZE(dev->msg_ram_conf.ext_filter)));
+                              | CAN_XIDFC_LSE((uint32_t)(ARRAY_SIZE(dev->msg_ram_conf.ext_filter)));
     dev->conf->can->RXF0C.reg = CAN_RXF0C_F0SA((uint32_t)(dev->msg_ram_conf.rx_fifo_0))
-                            | CAN_RXF0C_F0S((uint32_t)(ARRAY_SIZE(dev->msg_ram_conf.rx_fifo_0)));
+                              | CAN_RXF0C_F0S((uint32_t)(ARRAY_SIZE(dev->msg_ram_conf.rx_fifo_0)));
     dev->conf->can->RXF1C.reg = CAN_RXF1C_F1SA((uint32_t)(dev->msg_ram_conf.rx_fifo_1))
-                            | CAN_RXF1C_F1S((uint32_t)(ARRAY_SIZE(dev->msg_ram_conf.rx_fifo_1)));
+                              | CAN_RXF1C_F1S((uint32_t)(ARRAY_SIZE(dev->msg_ram_conf.rx_fifo_1)));
     dev->conf->can->RXBC.reg = CAN_RXBC_RBSA((uint32_t)(dev->msg_ram_conf.rx_buffer));
     dev->conf->can->TXEFC.reg = CAN_TXEFC_EFSA((uint32_t)(dev->msg_ram_conf.tx_event_fifo))
-                            | CAN_TXEFC_EFS((uint32_t)(ARRAY_SIZE(dev->msg_ram_conf.tx_event_fifo)));
+                              | CAN_TXEFC_EFS((uint32_t)(ARRAY_SIZE(dev->msg_ram_conf.tx_event_fifo)));
     dev->conf->can->TXBC.reg = CAN_TXBC_TBSA((uint32_t)(dev->msg_ram_conf.tx_fifo_queue))
-                            | CAN_TXBC_TFQS((uint32_t)(ARRAY_SIZE(dev->msg_ram_conf.tx_fifo_queue)));
+                              | CAN_TXBC_TFQS((uint32_t)(ARRAY_SIZE(dev->msg_ram_conf.tx_fifo_queue)));
 
     /* In the vendor file, the data field size in CanMramTxbe is set to 64 bytes
         although it can be configurable. That's why 64 bytes is used here by default */
@@ -375,19 +463,36 @@ static int _init(candev_t *candev)
     if (IS_ACTIVE(ENABLE_DEBUG)) {
         _dump_msg_ram_section(dev);
     }
-    /* Disable automatic retransmission by default */
-    /* This can be added as a configuration parameter for the CAN controller */
-    dev->conf->can->CCCR.reg |= CAN_CCCR_DAR;
+
+    uint32_t cccr = dev->conf->can->CCCR.reg;
+    cccr &= ~(CAN_CCCR_DAR | CAN_CCCR_TXP | CAN_CCCR_MON);
+
+    if (dev->conf->disable_automatic_retransmission) {
+         cccr |= CAN_CCCR_DAR;
+    }
+
+    if (dev->conf->enable_transmit_pause) {
+        cccr |= CAN_CCCR_TXP;
+    }
+
+    if (dev->conf->start_in_monitor_mode) {
+        cccr |= CAN_CCCR_MON;
+    }
+
+    dev->conf->can->CCCR.reg = cccr;
 
     /* Reject all remote frames */
-    dev->conf->can->GFC.reg |= CAN_GFC_RRFE | CAN_GFC_RRFS;
+    dev->conf->can->GFC.reg = CAN_GFC_RRFE | CAN_GFC_RRFS;
 
     /* Enable reception interrupts: reception on FIFO0 and FIFO1 */
-    dev->conf->can->IE.reg |= CAN_IE_RF0NE | CAN_IE_RF1NE;
+    uint32_t ie_reg = CAN_IE_RF0NE | CAN_IE_RF1NE;
     /* Enable transmission events interrupts */
-    dev->conf->can->IE.reg |= CAN_IE_TEFNE;
+    ie_reg |= CAN_IE_TEFNE;
     /* Enable errors interrupts */
-    dev->conf->can->IE.reg |= CAN_IE_PEDE | CAN_IE_PEAE | CAN_IE_BOE | CAN_IE_EWE | CAN_IE_EPE;
+    ie_reg |= CAN_IE_PEDE | CAN_IE_PEAE | CAN_IE_BOE | CAN_IE_EWE | CAN_IE_EPE;
+    /* write Interrupt enable register */
+    dev->conf->can->IE.reg = ie_reg;
+
     /* Enable the interrupt lines */
     dev->conf->can->ILE.reg = CAN_ILE_EINT0 | CAN_ILE_EINT1;
 
@@ -547,9 +652,9 @@ static int _set_filter(candev_t *candev, const struct can_filter *filter)
         dev->msg_ram_conf.ext_filter[idx].XIDFE_1.reg |= CAN_XIDFE_1_EFT(CANDEV_SAMD5X_CLASSIC_FILTER);
         dev->msg_ram_conf.ext_filter[idx].XIDFE_0.reg |= CAN_XIDFE_0_EFID1(filter->can_id);
         dev->msg_ram_conf.ext_filter[idx].XIDFE_1.reg |= CAN_XIDFE_1_EFID2(filter->can_mask & CAN_EFF_MASK);
-        DEBUG("Extended filter element N°%d: F0 = 0x%08lx, F1 = 0x%08lx\n", idx,
-                                    (uint32_t)(dev->msg_ram_conf.ext_filter[idx].XIDFE_0.reg),
-                                    (uint32_t)(dev->msg_ram_conf.ext_filter[idx].XIDFE_1.reg));
+        DEBUG("Extended filter element N°%d: F0 = 0x%08" PRIx32 ", F1 = 0x%08" PRIx32 "\n",
+              idx, (uint32_t)(dev->msg_ram_conf.ext_filter[idx].XIDFE_0.reg),
+              (uint32_t)(dev->msg_ram_conf.ext_filter[idx].XIDFE_1.reg));
         _set_mode(dev->conf->can, MODE_INIT);
         /* Reject all extended frames that are not matching the filters applied */
         dev->conf->can->GFC.reg |= CAN_GFC_ANFE((uint32_t)CAN_REJECT);
@@ -587,8 +692,8 @@ static int _set_filter(candev_t *candev, const struct can_filter *filter)
                                                       | CAN_SIDFE_0_SFID1(filter->can_id & CAN_SFF_MASK)
                                                       | CAN_SIDFE_0_SFID2(filter->can_mask & CAN_SFF_MASK);
 
-        DEBUG("Standard filter element N°%d: S0 = 0x%08lx\n", idx,
-                                    (uint32_t)(dev->msg_ram_conf.std_filter[idx].SIDFE_0.reg));
+        DEBUG("Standard filter element N°%d: S0 = 0x%08" PRIx32 "\n",
+              (int)idx, (uint32_t)(dev->msg_ram_conf.std_filter[idx].SIDFE_0.reg));
         _set_mode(dev->conf->can, MODE_INIT);
         /* Reject all standard frames that are not matching the filters applied */
         dev->conf->can->GFC.reg |= CAN_GFC_ANFS((uint32_t)CAN_REJECT);
@@ -691,7 +796,16 @@ static int _set(candev_t *candev, canopt_t opt, void *value, size_t value_len)
                         }
                         break;
                     case CANOPT_STATE_LOOPBACK:
-                        res = _set_mode(dev->conf->can, MODE_TEST);
+                        res = _set_mode(dev->conf->can, MODE_LOOPBACK);
+                        if (res == 0) {
+                            res = sizeof(canopt_state_t);
+                        }
+                        else {
+                            return -1;
+                        }
+                        break;
+                    case CANOPT_STATE_LISTEN_ONLY:
+                        res = _set_mode(dev->conf->can, MODE_MONITOR);
                         if (res == 0) {
                             res = sizeof(canopt_state_t);
                         }
@@ -715,7 +829,7 @@ static void _isr(candev_t *candev)
     can_t *dev = container_of(candev, can_t, candev);
 
     uint32_t irq_reg = dev->conf->can->IR.reg;
-    DEBUG("isr: IR reg = 0x%08lx\n", irq_reg);
+    DEBUG("isr: IR reg = 0x%08" PRIx32 "\n", irq_reg);
 
     /* Interrupt triggered due to reception of CAN frame on Rx_FIFO_0 */
     if (irq_reg & CAN_IR_RF0N) {

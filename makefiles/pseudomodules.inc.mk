@@ -78,6 +78,7 @@ PSEUDOMODULES += event_timeout
 PSEUDOMODULES += event_timeout_ztimer
 PSEUDOMODULES += evtimer_mbox
 PSEUDOMODULES += fatfs_vfs_format
+PSEUDOMODULES += fdcan
 PSEUDOMODULES += fmt_%
 PSEUDOMODULES += gcoap_forward_proxy
 PSEUDOMODULES += gcoap_forward_proxy_thread
@@ -107,6 +108,7 @@ PSEUDOMODULES += gnrc_dhcpv6_client_simple_pd
 ## @}
 ## @}
 PSEUDOMODULES += gnrc_ipv6_auto_subnets_auto_init
+PSEUDOMODULES += gnrc_ipv6_auto_subnets_eui
 PSEUDOMODULES += gnrc_ipv6_auto_subnets_simple
 PSEUDOMODULES += gnrc_ipv6_classic
 PSEUDOMODULES += gnrc_ipv6_default
@@ -272,15 +274,6 @@ PSEUDOMODULES += lwext4_vfs_format
 ##
 PSEUDOMODULES += libc_gettimeofday
 
-## @defgroup pseudomodule_malloc_tracing malloc_tracing
-## @brief Debug dynamic memory management by hooking in a print into each call
-##        of malloc(), calloc(), realloc() and free
-## @{
-## @deprecated  Use module `malloc_monitor` with verbous configuration instead;
-##              will be removed after 2024.07 release.
-PSEUDOMODULES += malloc_tracing
-## @}
-
 ## @defgroup pseudomodule_mpu_stack_guard mpu_stack_guard
 ## @brief MPU based stack guard
 ##
@@ -350,6 +343,7 @@ PSEUDOMODULES += picolibc_stdout_buffered
 PSEUDOMODULES += pktqueue
 PSEUDOMODULES += posix_headers
 PSEUDOMODULES += printf_float
+PSEUDOMODULES += printf_long_long
 PSEUDOMODULES += prng
 PSEUDOMODULES += prng_%
 PSEUDOMODULES += psa_riot_cipher_aes_common
@@ -374,6 +368,7 @@ PSEUDOMODULES += fortuna_reseed
 PSEUDOMODULES += riotboot_%
 PSEUDOMODULES += rtt_cmd
 PSEUDOMODULES += saul_adc
+PSEUDOMODULES += saul_bat_voltage
 PSEUDOMODULES += saul_default
 PSEUDOMODULES += saul_gpio
 PSEUDOMODULES += saul_nrf_temperature
@@ -408,6 +403,7 @@ PSEUDOMODULES += servo_timer
 PSEUDOMODULES += servo_saul
 ## @}
 
+PSEUDOMODULES += shell_builtin_cmd_help_json
 PSEUDOMODULES += shell_cmd_app_metadata
 PSEUDOMODULES += shell_cmd_at30tse75x
 PSEUDOMODULES += shell_cmd_benchmark_udp
@@ -465,6 +461,7 @@ PSEUDOMODULES += shell_cmds_default
 PSEUDOMODULES += shell_hooks
 PSEUDOMODULES += shell_lock_auto_locking
 PSEUDOMODULES += shield_llcc68
+PSEUDOMODULES += shield_sx1262
 PSEUDOMODULES += shield_w5100
 PSEUDOMODULES += slipdev_stdio
 PSEUDOMODULES += slipdev_l2addr
@@ -484,6 +481,13 @@ PSEUDOMODULES += soft_uart_modecfg
 PSEUDOMODULES += stdin
 PSEUDOMODULES += stdio_available
 PSEUDOMODULES += stdio_cdc_acm
+## @defgroup sys_stdio_default	Default STDIO provider
+## @ingroup sys_stdio
+## @{
+## This module selects the default STDIO method of a given board.
+## It will be enabled by default if no other stdio method is selected.
+PSEUDOMODULES += stdio_default
+## @}
 PSEUDOMODULES += stdio_dispatch
 PSEUDOMODULES += stdio_ethos
 PSEUDOMODULES += stdio_nimble_debug

@@ -105,11 +105,17 @@ static void _handle_rdnss_timeout(sock_udp_ep_t *dns_server);
 
 static inline bool _should_search_rtr(const gnrc_netif_t *netif)
 {
-    /* 6LBR interface does not send RS.
-       A non-advertising router sends RS or a 6LN that is advertising or not
+    /* RS are globally disabled */
+    if (!CONFIG_GNRC_IPV6_NIB_SOL_ROUTER) {
+        return false;
+    }
+    /* 6LBR interface does not send RS. */
+    if (gnrc_netif_is_6lbr(netif)) {
+        return false;
+    }
+    /* A non-advertising router sends RS or a 6LN that is advertising or not
        has to refetch router information */
-    return !gnrc_netif_is_6lbr(netif) &&
-           (!gnrc_netif_is_rtr_adv(netif) || gnrc_netif_is_6ln(netif));
+    return !gnrc_netif_is_rtr_adv(netif) || gnrc_netif_is_6ln(netif);
 }
 
 void gnrc_ipv6_nib_init(void)
@@ -849,8 +855,9 @@ static void _handle_rtr_adv(gnrc_netif_t *netif, const ipv6_hdr_t *ipv6,
                 /* notify optional PIO consumer */
                 if (IS_USED(MODULE_GNRC_IPV6_NIB_RTR_ADV_PIO_CB)) {
                     extern void gnrc_ipv6_nib_rtr_adv_pio_cb(gnrc_netif_t *netif,
-                                                             const ndp_opt_pi_t *pio);
-                    gnrc_ipv6_nib_rtr_adv_pio_cb(netif, (ndp_opt_pi_t *)opt);
+                                                             const ndp_opt_pi_t *pio,
+                                                             const ipv6_addr_t *src);
+                    gnrc_ipv6_nib_rtr_adv_pio_cb(netif, (ndp_opt_pi_t *)opt, &ipv6->src);
                 }
                 break;
             }
