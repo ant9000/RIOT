@@ -6,6 +6,8 @@
  * directory for more details.
  */
 
+#pragma once
+
 /**
  * @ingroup     cpu_esp32
  * @{
@@ -15,9 +17,6 @@
  *
  * @author      Gunar Schorcht <gunar@schorcht.net>
  */
-
-#ifndef PERIPH_CPU_ESP32C3_H
-#define PERIPH_CPU_ESP32C3_H
 
 #include "sdkconfig.h"
 
@@ -176,5 +175,4 @@ extern "C" {
 }
 #endif
 
-#endif /* PERIPH_CPU_ESP32C3_H */
 /** @} */

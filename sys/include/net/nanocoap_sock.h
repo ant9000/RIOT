@@ -8,6 +8,8 @@
  * directory for more details.
  */
 
+#pragma once
+
 /**
  * @defgroup    net_nanosock nanoCoAP Sock
  * @ingroup     net
@@ -134,9 +136,6 @@
  *
  * @author      Kaspar Schleiser <kaspar@schleiser.de>
  */
-
-#ifndef NET_NANOCOAP_SOCK_H
-#define NET_NANOCOAP_SOCK_H
 
 #include <stdint.h>
 #include <unistd.h>
@@ -1049,5 +1048,4 @@ int nanocoap_sock_block_request(coap_block_request_t *ctx,
 #ifdef __cplusplus
 }
 #endif
-#endif /* NET_NANOCOAP_SOCK_H */
 /** @} */

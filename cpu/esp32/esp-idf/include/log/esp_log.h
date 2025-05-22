@@ -6,6 +6,8 @@
  * directory for more details.
  */
 
+#pragma once
+
 /**
  * @ingroup     cpu_esp32
  * @{
@@ -16,9 +18,6 @@
  * @author      Gunar Schorcht <gunar@schorcht.net>
  * @}
  */
-
-#ifndef LOG_ESP_LOG_H
-#define LOG_ESP_LOG_H
 
 #ifndef DOXYGEN     /* Hide implementation details from doxygen */
 
@@ -90,7 +89,6 @@ extern "C" {
 
 #endif
 
-
 #endif /* defined(RIOT_VERSION) */
 
 #ifdef __cplusplus
@@ -98,4 +96,3 @@ extern "C" {
 #endif
 
 #endif /* DOXYGEN */
-#endif /* LOG_ESP_LOG_H */

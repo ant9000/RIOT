@@ -6,6 +6,8 @@
  * directory for more details.
  */
 
+#pragma once
+
 /**
  * @ingroup     cpu_esp32
  * @{
@@ -23,9 +25,6 @@
  * @author      Gunar Schorcht <gunar@schorcht.net>
  * @}
  */
-
-#ifndef ADC_ARCH_H
-#define ADC_ARCH_H
 
 #ifdef __cplusplus
 extern "C" {
@@ -120,5 +119,3 @@ static inline int adc_vref_to_gpio25(void)
 #ifdef __cplusplus
 }
 #endif
-
-#endif /* ADC_ARCH_H */

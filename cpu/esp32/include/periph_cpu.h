@@ -6,6 +6,8 @@
  * directory for more details.
  */
 
+#pragma once
+
 /**
  * @ingroup     cpu_esp32
  * @{
@@ -15,9 +17,6 @@
  *
  * @author      Gunar Schorcht <gunar@schorcht.net>
  */
-
-#ifndef PERIPH_CPU_H
-#define PERIPH_CPU_H
 
 #include <stdbool.h>
 #include <stdint.h>
@@ -1022,5 +1021,4 @@ typedef struct {
 #include "can_esp.h"
 #endif
 
-#endif /* PERIPH_CPU_H */
 /** @} */

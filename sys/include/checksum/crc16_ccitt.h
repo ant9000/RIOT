@@ -6,6 +6,8 @@
  * directory for more details.
  */
 
+#pragma once
+
 /**
  * @defgroup    sys_checksum_crc16_ccitt CRC16-CCITT
  * @ingroup     sys_checksum
@@ -28,9 +30,6 @@
  * @author      Ludwig Knüpfer <ludwig.knuepfer@fu-berlin.de>
  * @author      Bennet Blischke <bennet.blischke@haw-hamburg.de>
  */
-
-#ifndef CHECKSUM_CRC16_CCITT_H
-#define CHECKSUM_CRC16_CCITT_H
 
 #include <stdint.h>
 #include <stdlib.h>
@@ -185,7 +184,5 @@ uint16_t crc16_ccitt_aug_calc(const unsigned char *buf, size_t len);
 #ifdef __cplusplus
 }
 #endif
-
-#endif /* CHECKSUM_CRC16_CCITT_H */
 
 /** @} */

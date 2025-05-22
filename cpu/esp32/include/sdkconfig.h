@@ -6,6 +6,8 @@
  * directory for more details.
  */
 
+#pragma once
+
 /**
  * @ingroup     cpu_esp32
  * @{
@@ -18,9 +20,6 @@
  *
  * @author      Gunar Schorcht <gunar@schorcht.net>
  */
-
-#ifndef SDKCONFIG_H
-#define SDKCONFIG_H
 
 /*
  * Some files in ESP-IDF use functions from `stdlib.h` without including the
@@ -269,5 +268,4 @@ extern "C" {
 }
 #endif
 
-#endif /* SDKCONFIG_H */
 /** @} */

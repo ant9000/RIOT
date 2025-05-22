@@ -6,6 +6,8 @@
  * directory for more details.
  */
 
+#pragma once
+
 /**
  * @ingroup     cpu_esp32
  * @{
@@ -17,9 +19,6 @@
  *
  * @}
  */
-
-#ifndef SYSCALLS_H
-#define SYSCALLS_H
 
 #include "syscalls_common.h"
 
@@ -45,5 +44,3 @@ void system_wdt_feed (void);
 #ifdef __cplusplus
 }
 #endif
-
-#endif /* SYSCALLS_H */

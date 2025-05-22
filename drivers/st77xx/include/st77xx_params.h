@@ -8,6 +8,8 @@
  * directory for more details.
  */
 
+#pragma once
+
 /**
  * @ingroup     drivers_st77xx
  *
@@ -19,9 +21,6 @@
  * @author      Francisco Molina <francois-xavier.molina@inria.fr>
  * @author      Gunar Schorcht <gunar@schorcht.net>
  */
-
-#ifndef ST77XX_PARAMS_H
-#define ST77XX_PARAMS_H
 
 #include "board.h"
 #include "lcd.h"
@@ -254,5 +253,4 @@ static const uint8_t st77xx_screen_ids[] =
 }
 #endif
 
-#endif /* ST77XX_PARAMS_H */
 /** @} */

@@ -6,6 +6,8 @@
  * directory for more details.
  */
 
+#pragma once
+
 /**
  * @defgroup    cpu_esp32_conf ESP32 compile configurations
  * @ingroup     cpu_esp32
@@ -18,9 +20,6 @@
  *
  * @author      Gunar Schorcht <gunar@schorcht.net>
  */
-
-#ifndef CPU_CONF_H
-#define CPU_CONF_H
 
 #if !defined(__ASSEMBLER__)
 #include <stdint.h>
@@ -120,5 +119,4 @@ extern "C" {
 }
 #endif
 
-#endif /* CPU_CONF_H */
 /** @} */

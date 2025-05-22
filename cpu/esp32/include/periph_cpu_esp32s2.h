@@ -6,6 +6,8 @@
  * directory for more details.
  */
 
+#pragma once
+
 /**
  * @ingroup     cpu_esp32
  * @{
@@ -15,9 +17,6 @@
  *
  * @author      Gunar Schorcht <gunar@schorcht.net>
  */
-
-#ifndef PERIPH_CPU_ESP32S2_H
-#define PERIPH_CPU_ESP32S2_H
 
 #include "sdkconfig.h"
 
@@ -270,10 +269,8 @@ extern "C" {
 #define USBDEV_NUM_ENDPOINTS            DWC2_USB_OTG_FS_NUM_EP
 /** @} */
 
-
 #ifdef __cplusplus
 }
 #endif
 
-#endif /* PERIPH_CPU_ESP32S2_H */
 /** @} */

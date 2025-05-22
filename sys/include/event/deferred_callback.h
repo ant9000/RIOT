@@ -6,6 +6,8 @@
  * directory for more details.
  */
 
+#pragma once
+
 /**
  * @ingroup     sys_event
  * @brief       Trigger an event callback after a timeout
@@ -21,9 +23,6 @@
  * @author      Benjamin Valentin <benjamin.valentin@ml-pa.com>
  *
  */
-
-#ifndef EVENT_DEFERRED_CALLBACK_H
-#define EVENT_DEFERRED_CALLBACK_H
 
 #include <assert.h>
 #include "event/callback.h"
@@ -100,5 +99,4 @@ static inline void event_deferred_callback_cancel(event_deferred_callback_t *eve
 #ifdef __cplusplus
 }
 #endif
-#endif /* EVENT_DEFERRED_CALLBACK_H */
 /** @} */
