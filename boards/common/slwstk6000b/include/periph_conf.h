@@ -1,10 +1,9 @@
 /*
- * Copyright (C) 2015-2020 Freie Universität Berlin
- *
- * This file is subject to the terms and conditions of the GNU Lesser
- * General Public License v2.1. See the file LICENSE in the top level
- * directory for more details.
+ * SPDX-FileCopyrightText: 2015-2020 Freie Universität Berlin
+ * SPDX-License-Identifier: LGPL-2.1-only
  */
+
+#pragma once
 
 /**
  * @ingroup     boards_common_slwstk6000b
@@ -17,9 +16,6 @@
  * @author      Bas Stottelaar <basstottelaar@gmail.com>
  * @author      Kai Beckmann <kai.beckmann@hs-rm.de>
  */
-
-#ifndef PERIPH_CONF_H
-#define PERIPH_CONF_H
 
 #include "cpu.h"
 #include "periph_cpu.h"
@@ -92,9 +88,10 @@ static const i2c_conf_t i2c_config[] = {
         .scl_pin = MODULE_PIN_P12,
         .loc = I2C_ROUTELOC0_SDALOC_LOC16 |
                I2C_ROUTELOC0_SCLLOC_LOC14,
+        .speed = I2C_SPEED_NORMAL,
         .cmu = cmuClock_I2C0,
         .irq = I2C0_IRQn,
-        .speed = I2C_SPEED_NORMAL
+        .use_internal_pull_ups = true
     }
 };
 
@@ -194,5 +191,4 @@ static const uart_conf_t uart_config[] = {
 }
 #endif
 
-#endif /* PERIPH_CONF_H */
 /** @} */

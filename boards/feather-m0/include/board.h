@@ -1,10 +1,9 @@
 /*
- * Copyright (C) 2017 Inria
- *
- * This file is subject to the terms and conditions of the GNU Lesser
- * General Public License v2.1. See the file LICENSE in the top level
- * directory for more details.
+ * SPDX-FileCopyrightText: 2017 Inria
+ * SPDX-License-Identifier: LGPL-2.1-only
  */
+
+#pragma once
 
 /**
  * @ingroup     boards_feather-m0
@@ -16,9 +15,6 @@
  *
  * @author      Alexandre Abadie <alexandre.abadie@inria.fr>
  */
-
-#ifndef BOARD_H
-#define BOARD_H
 
 #include "cpu.h"
 #include "periph_conf.h"
@@ -71,9 +67,17 @@ extern "C" {
 #define SX127X_PARAM_PASELECT           (SX127X_PA_BOOST)
 /** @} */
 
+/**
+ * @brief   This board uses the UF2 bootloader
+ *
+ * @details Boards after around 2018 use the more modern UF2 bootloader.
+ *          Comment out for the old BOSSA bootloader or upgrade to
+ *          the UF2 bootloader.
+ */
+#define BOOTLOADER_UF2    1
+
 #ifdef __cplusplus
 }
 #endif
 
-#endif /* BOARD_H */
 /** @} */

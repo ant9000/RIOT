@@ -3,7 +3,7 @@ include ../Makefile.drivers_common
 
 # Only build on a subset of boards (one per arch supported and
 # with enough features provided)
-BOARD_WHITELIST ?= \
+BOARDS_SUPPORTED ?= \
     atmega256rfr2-xpro \
     esp32-wroom-32 \
     stm32f4discovery \
@@ -27,6 +27,10 @@ ifneq (,$(filter apds99xx,$(DRIVERS)))
 endif
 ifneq (,$(filter bme680,$(DRIVERS)))
   USEMODULE += bme680_i2c
+endif
+ifneq (,$(filter gp8xxx,$(DRIVERS)))
+  USEMODULE += gp8403
+  USEMODULE += gp8302
 endif
 ifneq (,$(filter lm75,$(DRIVERS)))
   USEMODULE += tmp1075

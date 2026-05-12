@@ -1,10 +1,9 @@
 /*
- * Copyright (C) 2014 Freie Universität Berlin
- *
- * This file is subject to the terms and conditions of the GNU Lesser General
- * Public License v2.1. See the file LICENSE in the top level directory for more
- * details.
+ * SPDX-FileCopyrightText: 2014 Freie Universität Berlin
+ * SPDX-License-Identifier: LGPL-2.1-only
  */
+
+#pragma once
 
 /**
  * @ingroup     boards_spark-core
@@ -15,9 +14,6 @@
  *
  * @author      Christian Mehlis <mehlis@inf.fu-berlin.de>
  */
-
-#ifndef BOARD_H
-#define BOARD_H
 
 #include <stdint.h>
 
@@ -58,7 +54,7 @@
  * @name User button configuration
  * @{
  */
-#define BUTTON1             GPIO_PIN(PORT_B,2)
+#define BUTTON1             GPIO_PIN(PORT_B, 2)
 /** @} */
 
 /**
@@ -66,9 +62,9 @@
  * @{
  */
 #define CC3000_SPI          SPI_DEV(0)
-#define CC3000_CS           GPIO_PIN(PORT_B,12)
-#define CC3000_EN           GPIO_PIN(PORT_B,8)
-#define CC3000_INT          GPIO_PIN(PORT_B,11)
+#define CC3000_CS           GPIO_PIN(PORT_B, 12)
+#define CC3000_EN           GPIO_PIN(PORT_B, 8)
+#define CC3000_INT          GPIO_PIN(PORT_B, 11)
 /** @} */
 
 /**
@@ -76,7 +72,7 @@
  * @{
  */
 #define EXTFLASH_SPI        SPI_DEV(0)
-#define EXTFLASH            GPIO_PIN(PORT_B,9)
+#define EXTFLASH            GPIO_PIN(PORT_B, 9)
 /** @} */
 
 #ifdef __cplusplus
@@ -85,5 +81,4 @@
 
 #include "stm32_leds.h"
 
-#endif /* BOARD_H */
 /** @} */

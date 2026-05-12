@@ -1,10 +1,9 @@
 /*
- * Copyright (C) 2018 Gunar Schorcht
- *
- * This file is subject to the terms and conditions of the GNU Lesser
- * General Public License v2.1. See the file LICENSE in the top level
- * directory for more details.
+ * SPDX-FileCopyrightText: 2018 Gunar Schorcht
+ * SPDX-License-Identifier: LGPL-2.1-only
  */
+
+#pragma once
 
 /**
  * @ingroup     boards_esp32_wroom-32
@@ -28,9 +27,6 @@
  * @author      Gunar Schorcht <gunar@schorcht.net>
  */
 
-#ifndef PERIPH_CONF_H
-#define PERIPH_CONF_H
-
 #include <stdint.h>
 
 #ifdef __cplusplus
@@ -52,7 +48,7 @@ extern "C" {
  * purposes.
  */
 #ifndef ADC_GPIOS
-#define ADC_GPIOS   { GPIO0 , GPIO2 , GPIO4 , GPIO12, GPIO13, GPIO14, \
+#define ADC_GPIOS   { GPIO0, GPIO2, GPIO4, GPIO12, GPIO13, GPIO14, \
                       GPIO15, GPIO25, GPIO26, GPIO27, GPIO32, GPIO33, \
                       GPIO34, GPIO35, GPIO36, GPIO39 }
 #endif
@@ -202,5 +198,4 @@ extern "C" {
 /* include common peripheral definitions as last step */
 #include "periph_conf_common.h"
 
-#endif /* PERIPH_CONF_H */
 /** @} */

@@ -1,9 +1,6 @@
 /*
- * Copyright (C) 2023 ML!PA Consulting GmbH
- *
- * This file is subject to the terms and conditions of the GNU Lesser
- * General Public License v2.1. See the file LICENSE in the top level
- * directory for more details.
+ * SPDX-FileCopyrightText: 2023 ML!PA Consulting GmbH
+ * SPDX-License-Identifier: LGPL-2.1-only
  */
 
 /**
@@ -88,8 +85,10 @@ static int _mount(vfs_mount_t *mountp)
         real_mkdir(parent, 0777);
     }
 
-    real_mkdir(_prefix_path(mountp, ""), 0777);
-    res = errno == EEXIST ? 0 : -errno;
+    res = real_mkdir(_prefix_path(mountp, ""), 0777);
+    if (res < 0) {
+        res = (errno == EEXIST) ? 0 : -errno;
+    }
 
     mutex_unlock(&_lock);
     return res;

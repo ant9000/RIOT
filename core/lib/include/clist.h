@@ -1,11 +1,8 @@
 /*
- * Copyright (C) 2016 Kaspar Schleiser <kaspar@schleiser.de>
- *               2013 Freie Universität Berlin
- *               2017 Inria
- *
- * This file is subject to the terms and conditions of the GNU Lesser
- * General Public License v2.1. See the file LICENSE in the top level
- * directory for more details.
+ * SPDX-FileCopyrightText: 2016 Kaspar Schleiser <kaspar@schleiser.de>
+ * SPDX-FileCopyrightText: 2013 Freie Universität Berlin
+ * SPDX-FileCopyrightText: 2017 Inria
+ * SPDX-License-Identifier: LGPL-2.1-only
  */
 
 #pragma once
@@ -62,20 +59,21 @@
  *
  * Or use the clist_foreach() helper function, e.g.,:
  *
- *    static int _print_node(clist_node_t *node)
- *    {
- *        printf("0x%08x ", (unsigned)node);
- *        return 0;
- *    }
+ *     static int _print_node(clist_node_t *node, void *arg)
+ *     {
+ *         (void) arg; // unused optional argument
+ *         printf("0x%08x ", (unsigned)node);
+ *         return 0;
+ *     }
  *
- *    [...]
- *    clist_foreach(&list, _print_node);
+ *     [...]
+ *     clist_foreach(&list, _print_node, NULL);
  *
  * To use clist as a queue, use clist_rpush() for adding elements and clist_lpop()
  * for removal. Using clist_lpush() and clist_rpop() is inefficient due to
  * clist_rpop()'s O(n) runtime.
  *
- * To use clist as stack, use clist_lpush()/clist_lpop().
+ * To use clist as stack, use clist_lpush() / clist_lpop().
  *
  * Implementation details:
  *
@@ -443,6 +441,55 @@ static inline void clist_sort(clist_node_t *list, clist_cmp_func_t cmp)
     if (list->next) {
         list->next = _clist_sort(list->next->next, cmp);
     }
+}
+
+/**
+ * @brief Insert a node into a sorted clist
+ *
+ * This function will insert a @p node into an already @p cmp sorted @p list.
+ * New nodes are added to the right of equal elements.
+ * -> stable insertion sort can be done with @ref clist_lpop
+ *
+ * Complexity
+ *   - Best case O(1): insert before head or after tail.
+ *   - Worst case O(n): insert within the interior of the ring.
+ *
+ * @param[in,out]   list    sorted List to to insert in
+ * @param[in,out]   node    Node which gets inserted.
+ *                          Must not be NULL.
+ * @param[in]       cmp     Comparison function (see @ref clist_sort)
+ */
+static inline void clist_insert_sorted(clist_node_t *list, clist_node_t *node,
+                                       clist_cmp_func_t cmp)
+{
+    if (!list->next) {
+        node->next = node;
+        list->next = node;
+        return;
+    }
+
+    /* smaller than first */
+    if (cmp(list->next->next, node) > 0) {
+        node->next = list->next->next;
+        list->next->next = node;
+        return;
+    }
+
+    /* bigger than last */
+    if (cmp(list->next, node) <= 0) {
+        node->next = list->next->next;
+        list->next->next = node;
+        list->next = node; /* adjust list to new last element */
+        return;
+    }
+
+    clist_node_t *pos = list->next;
+    /* node must be smaller than last due to previous check */
+    while (cmp(pos->next, node) <= 0) {
+            pos = pos->next;
+    }
+    node->next = pos->next;
+    pos->next = node;
 }
 
 /**

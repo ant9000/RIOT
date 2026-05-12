@@ -6,7 +6,7 @@ DHCPV6_SERVER_PORT := 61342
 RIOTBASE ?= $(CURDIR)/../..
 
 # boards don't support ethos
-BOARD_BLACKLIST += ruuvitag thingy52
+BOARDS_UNSUPPORTED += ruuvitag thingy52
 
 USEMODULE += dhcpv6_client_ia_pd
 USEMODULE += dhcpv6_client_ia_na
@@ -43,7 +43,7 @@ include $(RIOTBASE)/Makefile.include
 
 # export IFACE variable to environment of dhcpv6_server and
 # test-with-config/check-config rules
-# see: https://doc.riot-os.org/build-system-basics.html#variable-declaration-guidelines
+# see: https://guide.riot-os.org/build-system/build_system_basics/#variables-declaration-guidelines
 $(call target-export-variables,dhcpv6_server test-with-config/check-config,IFACE)
 
 dhcpv6_server:

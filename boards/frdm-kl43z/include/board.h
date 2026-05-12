@@ -1,15 +1,12 @@
 /*
- * Copyright (C) 2018 Eistec AB
- *
- * This file is subject to the terms and conditions of the GNU Lesser General
- * Public License v2.1. See the file LICENSE in the top level directory for more
- * details.
+ * SPDX-FileCopyrightText: 2018 Eistec AB
+ * SPDX-License-Identifier: LGPL-2.1-only
  */
 
+#pragma once
+
 /**
- * @defgroup    boards_frdm-kl43z NXP FRDM-KL43Z Board
- * @ingroup     boards
- * @brief       Support for the NXP FRDM-KL43Z
+ * @ingroup     boards_frdm-kl43z
  * @{
  *
  * @file
@@ -17,9 +14,6 @@
  *
  * @author      Joakim Nohlgård <joakim.nohlgard@eistec.se>
  */
-
-#ifndef BOARD_H
-#define BOARD_H
 
 #include "cpu.h"
 #include "periph_conf.h"
@@ -99,5 +93,4 @@ extern "C"
 }
 #endif
 
-#endif /* BOARD_H */
 /** @} */

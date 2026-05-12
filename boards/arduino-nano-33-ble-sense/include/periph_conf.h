@@ -1,9 +1,9 @@
 /*
- * Copyright (C) 2024 Méwen Berthelot
- * This file is subject to the terms and conditions of the GNU Lesser
- * General Public License v2.1. See the file LICENSE in the top level
- * directory for more details.
+ * SPDX-FileCopyrightText: 2024 Méwen Berthelot
+ * SPDX-License-Identifier: LGPL-2.1-only
  */
+
+#pragma once
 
 /**
  * @ingroup     boards_arduino-nano-33-ble-sense
@@ -15,9 +15,6 @@
  * @author      Méwen Berthelot <berthelotmewen@gmail.com>
  *
  */
-
-#ifndef PERIPH_CONF_H
-#define PERIPH_CONF_H
 
 #include "periph_cpu.h"
 #include "cfg_clock_32_1.h"
@@ -92,5 +89,4 @@ extern "C"
 }
 #endif
 
-#endif /* PERIPH_CONF_H */
 /** @} */

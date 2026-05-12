@@ -1,11 +1,8 @@
 /*
- * Copyright (C) 2018 Koen Zandberg <koen@bergzand.net>
- *               2021 Francisco Molina
- *               2023 Gunar Schorcht
- *
- * This file is subject to the terms and conditions of the GNU Lesser
- * General Public License v2.1. See the file LICENSE in the top level
- * directory for more details.
+ * SPDX-FileCopyrightText: 2018 Koen Zandberg <koen@bergzand.net>
+ * SPDX-FileCopyrightText: 2021 Francisco Molina
+ * SPDX-FileCopyrightText: 2023 Gunar Schorcht
+ * SPDX-License-Identifier: LGPL-2.1-only
  */
 
 #pragma once
@@ -202,7 +199,6 @@ extern "C" {
                                       ST77XX_PARAM_IF_SPI \
                                       ST77XX_PARAM_IF_PAR \
                                       ST77XX_PARAM_IF_PAR_16BIT \
-                                      .cntrl = ST77XX_PARAM_CNTRL, \
                                       .cs_pin = ST77XX_PARAM_CS, \
                                       .dcx_pin = ST77XX_PARAM_DCX, \
                                       .rst_pin = ST77XX_PARAM_RST, \
@@ -213,6 +209,7 @@ extern "C" {
                                       .rotation = ST77XX_PARAM_ROTATION, \
                                       .offset_x = ST77XX_PARAM_OFFSET_X, \
                                       .offset_y = ST77XX_PARAM_OFFSET_Y, \
+                                      .cntrl = ST77XX_PARAM_CNTRL, \
                                     }
 #endif /* ST77XX_PARAMS */
 /** @} */

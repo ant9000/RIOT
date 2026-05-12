@@ -1,9 +1,6 @@
 /*
- * Copyright (C) 2019 Koen Zandberg <koen@bergzand.net>
- *
- * This file is subject to the terms and conditions of the GNU Lesser
- * General Public License v2.1. See the file LICENSE in the top level
- * directory for more details.
+ * SPDX-FileCopyrightText: 2019 Koen Zandberg <koen@bergzand.net>
+ * SPDX-License-Identifier: LGPL-2.1-only
  */
 
 /**
@@ -44,17 +41,14 @@ static int cmd_text(int argc, char **argv)
     return 0;
 }
 
-static const shell_command_t shell_commands[] = {
-    { "text",  "Generates long text for testing stdio buffer",  cmd_text },
-    { NULL, NULL, NULL }
-};
+SHELL_COMMAND(text, "Generates long text for testing stdio buffer", cmd_text);
 
 int main(void)
 {
     (void) puts("RIOT USB CDC ACM shell test");
 
     char line_buf[SHELL_DEFAULT_BUFSIZE];
-    shell_run(shell_commands, line_buf, SHELL_DEFAULT_BUFSIZE);
+    shell_run(NULL, line_buf, SHELL_DEFAULT_BUFSIZE);
 
     return 0;
 }

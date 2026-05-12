@@ -1,5 +1,9 @@
-#ifndef GPIO_PARAMS_H
-#define GPIO_PARAMS_H
+/*
+ * SPDX-FileCopyrightText: 2021 luisan00
+ * SPDX-License-Identifier: LGPL-2.1-only
+ */
+
+#pragma once
 
 #include "board.h"
 #include "saul/periph.h"
@@ -50,5 +54,4 @@ static const saul_gpio_params_t saul_gpio_params[] =
 }
 #endif
 
-#endif /* GPIO_PARAMS_H */
 /** @} */

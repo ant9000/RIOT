@@ -1,9 +1,6 @@
 /*
- * Copyright (C) 2016 Freie Universität Berlin
- *
- * This file is subject to the terms and conditions of the GNU Lesser
- * General Public License v2.1. See the file LICENSE in the top level
- * directory for more details.
+ * SPDX-FileCopyrightText: 2016 Freie Universität Berlin
+ * SPDX-License-Identifier: LGPL-2.1-only
  */
 
 #pragma once
@@ -597,6 +594,20 @@ typedef struct {
  * @param[in] mux   Mux value
  */
 void gpio_init_mux(gpio_t pin, gpio_mux_t mux);
+
+#ifdef PM_SLEEPCFG_SLEEPMODE_OFF
+
+/**
+ * @brief   CPU provides own pm_off() function
+ */
+#  define PROVIDES_PM_OFF
+
+/**
+ * @brief   CPU provides own pm_off() function
+ */
+#  define PROVIDES_PM_LAYERED_OFF
+
+#endif /* PM_SLEEPCFG_SLEEPMODE_OFF */
 
 /**
  * @brief   Called before the power management enters a power mode
@@ -1342,9 +1353,25 @@ void rtc_tamper_init(void);
  * @param   pin     The GPIO pin to be used for tamper detection
  * @param   flank   The Flank to trigger the even
  *
- * @return  0 on success, -1 if pin is not RTC pin
+ * @return  0 on success, -1 if pin is not an RTC pin
  */
 int rtc_tamper_register(gpio_t pin, gpio_flank_t flank);
+
+/**
+ * @brief   (Re-)Enable Tamper Detection pin
+ *
+ * @param   pin     The GPIO pin to be used for tamper detection
+ *
+ * @return  0 on success, -1 if pin is not an RTC pin
+ */
+int rtc_tamper_pin_enable(gpio_t pin);
+
+/**
+ * @brief   Disable Tamper Detection pin
+ *
+ * @param   pin     The GPIO pin to no longer be used for tamper detection
+ */
+void rtc_tamper_pin_disable(gpio_t pin);
 
 /**
  * @brief   Enable Tamper Detection IRQs

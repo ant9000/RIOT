@@ -1,10 +1,9 @@
 /*
- * Copyright (C) 2019 Yegor Yefremov
- *
- * This file is subject to the terms and conditions of the GNU Lesser
- * General Public License v2.1. See the file LICENSE in the top level
- * directory for more details.
+ * SPDX-FileCopyrightText: 2019 Yegor Yefremov
+ * SPDX-License-Identifier: LGPL-2.1-only
  */
+
+#pragma once
 
 /**
  * @ingroup     boards_esp32_ttgo-t-beam
@@ -26,9 +25,6 @@
  * @file
  * @author      Yegor Yefremov <yegorslists@googlemail.com>
  */
-
-#ifndef BOARD_H
-#define BOARD_H
 
 #include <stdint.h>
 
@@ -84,12 +80,12 @@
  * SX127X configuration.
  * @{
  */
-#define SX127X_PARAM_SPI_NSS            GPIO18
-#define SX127X_PARAM_RESET              GPIO23
-#define SX127X_PARAM_DIO0               GPIO26
-#define SX127X_PARAM_DIO1               GPIO_UNDEF /* Pin is not connected to the LoRa chip directly */
-#define SX127X_PARAM_DIO2               GPIO_UNDEF /* Pin is not connected to the LoRa chip directly */
-#define SX127X_PARAM_DIO3               GPIO_UNDEF
+#define SX127X_PARAM_SPI_NSS     GPIO18
+#define SX127X_PARAM_RESET       GPIO23
+#define SX127X_PARAM_DIO0        GPIO26
+#define SX127X_PARAM_DIO1        GPIO_UNDEF /* Pin is not connected to the LoRa chip directly */
+#define SX127X_PARAM_DIO2        GPIO_UNDEF /* Pin is not connected to the LoRa chip directly */
+#define SX127X_PARAM_DIO3        GPIO_UNDEF
 /** @} */
 
 /* include common board definitions as last step */
@@ -103,5 +99,4 @@ extern "C" {
 } /* end extern "C" */
 #endif
 
-#endif /* BOARD_H */
 /** @} */

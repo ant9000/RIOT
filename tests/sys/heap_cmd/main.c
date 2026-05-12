@@ -1,9 +1,6 @@
 /*
- * Copyright (C) 2019 Gunar Schorcht <gunar@schorcht.net>
- *
- * This file is subject to the terms and conditions of the GNU Lesser
- * General Public License v2.1. See the file LICENSE in the top level
- * directory for more details.
+ * SPDX-FileCopyrightText: 2019 Gunar Schorcht <gunar@schorcht.net>
+ * SPDX-License-Identifier: LGPL-2.1-only
  */
 
 /**
@@ -33,6 +30,8 @@ static int malloc_cmd(int argc, char **argv)
     return 0;
 }
 
+SHELL_COMMAND(malloc, "malloc <size>", malloc_cmd);
+
 static int free_cmd(int argc, char **argv)
 {
     if (argc < 2) {
@@ -48,11 +47,7 @@ static int free_cmd(int argc, char **argv)
     return 0;
 }
 
-static const shell_command_t shell_commands[] = {
-    { "malloc", "malloc <size>", malloc_cmd },
-    { "free", "free <addr in hex> returned from malloc, e.g., 0x1234", free_cmd },
-    { NULL, NULL, NULL }
-};
+SHELL_COMMAND(free, "free <addr in hex> returned from malloc, e.g., 0x1234", free_cmd);
 
 int main(void)
 {
@@ -63,7 +58,7 @@ int main(void)
     char line_buf[SHELL_DEFAULT_BUFSIZE];
 
     /* define own shell commands */
-    shell_run(shell_commands, line_buf, SHELL_DEFAULT_BUFSIZE);
+    shell_run(NULL, line_buf, SHELL_DEFAULT_BUFSIZE);
 
     return 0;
 }

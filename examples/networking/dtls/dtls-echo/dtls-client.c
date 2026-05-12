@@ -1,10 +1,7 @@
 /*
- * Copyright (C) 2015 Freie Universität Berlin
- * Copyright (C) 2018 Inria
- *
- * This file is subject to the terms and conditions of the GNU Lesser
- * General Public License v2.1. See the file LICENSE in the top level
- * directory for more details.
+ * SPDX-FileCopyrightText: 2015 Freie Universität Berlin
+ * SPDX-FileCopyrightText: 2018 Inria
+ * SPDX-License-Identifier: LGPL-2.1-only
  */
 
 /**
@@ -242,8 +239,9 @@ static int _read_from_peer_handler(struct dtls_context_t *ctx,
     (void) session;
 
     printf("Client: got DTLS Data App -- ");
-    for (size_t i = 0; i < len; i++)
+    for (size_t i = 0; i < len; i++) {
         printf("%c", data[i]);
+    }
     puts(" --");
 
     /*

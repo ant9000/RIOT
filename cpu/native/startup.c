@@ -1,10 +1,7 @@
 /*
- * Copyright (C) 2013 Ludwig Knüpfer <ludwig.knuepfer@fu-berlin.de>
- *               2017 Freie Universität Berlin
- *
- * This file is subject to the terms and conditions of the GNU Lesser
- * General Public License v2.1. See the file LICENSE in the top level
- * directory for more details.
+ * SPDX-FileCopyrightText: 2013 Ludwig Knüpfer <ludwig.knuepfer@fu-berlin.de>
+ * SPDX-FileCopyrightText: 2017 Freie Universität Berlin
+ * SPDX-License-Identifier: LGPL-2.1-only
  */
 
 /**
@@ -250,13 +247,14 @@ void daemonize(void)
 
 /**
  * Remove any -d options from an argument vector.
+ * This is needed to ensure that a rebooted RIOT that is already
+ * daemonized doesn't try to daemonize again.
  *
  * @param[in,out]   argv    an argument vector
  */
-static void filter_daemonize_argv(char **argv)
+static void _consume_daemonize_argv(char **argv)
 {
-    int idx = 0;
-    for (char **narg = argv; *narg != NULL; narg++, idx++) {
+    for (char **narg = argv; *narg != NULL; narg++) {
         if (strcmp("-d", narg[0]) == 0) {
             char **xarg = narg;
             do {
@@ -654,7 +652,7 @@ __attribute__((constructor)) static void startup(int argc, char **argv, char **e
 #endif
 
     if (dmn) {
-        filter_daemonize_argv(_native_argv);
+        _consume_daemonize_argv(_native_argv);
         if (stderrtype == _STDIOTYPE_STDIO) {
             stderrtype = _STDIOTYPE_NULL;
         }

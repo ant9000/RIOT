@@ -1,5 +1,0 @@
-humanize
-packaging
-pygdbmi
-pyserial
-progressbar

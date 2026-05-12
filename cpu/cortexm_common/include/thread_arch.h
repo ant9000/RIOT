@@ -1,10 +1,7 @@
 /*
- * Copyright (C) 2021 Koen Zandberg <koen@bergzand.net>
- *               2021 Inria
- *
- * This file is subject to the terms and conditions of the GNU Lesser General
- * Public License v2.1. See the file LICENSE in the top level directory for more
- * details.
+ * SPDX-FileCopyrightText: 2021 Koen Zandberg <koen@bergzand.net>
+ * SPDX-FileCopyrightText: 2021 Inria
+ * SPDX-License-Identifier: LGPL-2.1-only
  */
 
 #pragma once
@@ -25,9 +22,9 @@
 extern "C" {
 #endif
 
-#define THREAD_API_INLINED
-
 #ifndef DOXYGEN /* Doxygen is in core/include/thread.h */
+
+#define THREAD_API_INLINED
 
 static inline __attribute__((always_inline)) void thread_yield_higher(void)
 {
@@ -40,6 +37,19 @@ static inline __attribute__((always_inline)) void thread_yield_higher(void)
 }
 
 #endif /* DOXYGEN */
+
+/**
+ * @brief Default SVC dispatch handler (weak function).
+ *
+ * @param[in] svc_number The svc number to handle.
+ * @param[in] svc_args Supervisor call arguments.
+ *
+ * @retval >= 0 when svc_number has been handled.
+ * @retval < 0 otherwise.
+ *
+ * @see _svc_dispatch
+ */
+int svc_dispatch_handler(unsigned int svc_number, unsigned int *svc_args);
 
 #ifdef __cplusplus
 }

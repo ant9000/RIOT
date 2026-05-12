@@ -1,10 +1,9 @@
 /*
- * Copyright (C)  2017 Inria
- *
- * This file is subject to the terms and conditions of the GNU Lesser
- * General Public License v2.1. See the file LICENSE in the top level
- * directory for more details.
+ * SPDX-FileCopyrightText: 2017 Inria
+ * SPDX-License-Identifier: LGPL-2.1-only
  */
+
+#pragma once
 
 /**
  * @ingroup     boards_sodaq-explorer
@@ -15,9 +14,6 @@
  *
  * @author      Alexandre Abadie <alexandre.abadie@inria.fr>
  */
-
-#ifndef PERIPH_CONF_H
-#define PERIPH_CONF_H
 
 #include "periph_cpu.h"
 #include "cfg_clock_default.h"
@@ -38,8 +34,8 @@ extern "C" {
 static const uart_conf_t uart_config[] = {
     {
         .dev      = &SERCOM5->USART,
-        .rx_pin   = GPIO_PIN(PB,31),  /* D0, RX Pin */
-        .tx_pin   = GPIO_PIN(PB,30),  /* D1, TX Pin */
+        .rx_pin   = GPIO_PIN(PB, 31),  /* D0, RX Pin */
+        .tx_pin   = GPIO_PIN(PB, 30),  /* D1, TX Pin */
 #ifdef MODULE_PERIPH_UART_HW_FC
         .rts_pin  = GPIO_UNDEF,
         .cts_pin  = GPIO_UNDEF,
@@ -52,8 +48,8 @@ static const uart_conf_t uart_config[] = {
     },
     {
         .dev      = &SERCOM4->USART,
-        .rx_pin   = GPIO_PIN(PB,13),
-        .tx_pin   = GPIO_PIN(PB,14),
+        .rx_pin   = GPIO_PIN(PB, 13),
+        .tx_pin   = GPIO_PIN(PB, 14),
 #ifdef MODULE_PERIPH_UART_HW_FC
         .rts_pin  = GPIO_UNDEF,
         .cts_pin  = GPIO_UNDEF,
@@ -66,8 +62,8 @@ static const uart_conf_t uart_config[] = {
     },
     { /* Connected to RN2483 */
         .dev      = &SERCOM0->USART,
-        .rx_pin   = GPIO_PIN(PA,5),
-        .tx_pin   = GPIO_PIN(PA,6),
+        .rx_pin   = GPIO_PIN(PA, 5),
+        .tx_pin   = GPIO_PIN(PA, 6),
 #ifdef MODULE_PERIPH_UART_HW_FC
         .rts_pin  = GPIO_UNDEF,
         .cts_pin  = GPIO_UNDEF,
@@ -148,5 +144,4 @@ static const i2c_conf_t i2c_config[] = {
 }
 #endif
 
-#endif /* PERIPH_CONF_H */
 /** @} */

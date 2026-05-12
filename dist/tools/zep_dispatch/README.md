@@ -117,7 +117,7 @@ This can be changed with the `TOPOLOGY` environment variable.
 
 Next, start the border router example with RPL enabled:
 
-    USEMODULE=gnrc_rpl make -C examples/networking/gnrc/gnrc_border_router all term
+    USEMODULE=gnrc_rpl make -C examples/networking/gnrc/border_router all term
 
 Verify that the border router got a prefix on it's downstream interface with `ifconfig`.
 
@@ -149,8 +149,8 @@ Iface  6  HWaddr: 7A:37:FC:7D:1A:AF
 
 Now start as many `gnrc_networking` nodes as you have mesh nodes defined in your topology file:
 
-    USE_ZEP=1 make -C examples/networking/gnrc/gnrc_networking all term
-    USE_ZEP=1 make -C examples/networking/gnrc/gnrc_networking all term
+    USE_ZEP=1 make -C examples/networking/gnrc/networking all term
+    USE_ZEP=1 make -C examples/networking/gnrc/networking all term
     …
 
 The node should be able to join the DODAG as you can verify with the `rpl` command:
@@ -169,6 +169,8 @@ This should also be visible in Foren6.
 Topology generation
 -------------------
 
+#### Random Topology
+
 To generate a random topology use the `topogen.sh` script.
 This will randomly distribute *N* nodes on on a *W* × *H* map.
 Each node has a radio range *R* ± *V* where *V* is a random variance that can also be set to 0.
@@ -182,3 +184,36 @@ If you have `gnuplot` installed this will also generate a plot of the resulting 
 
 A light color means that a node only has a one-way connection to the network, gray means a node is
 entirely isolated.
+
+#### Manual Node placement
+
+To manually put nodes on the 'map' by specifying their (x, y) coordinates, you can call `topogen` with
+a world file instead.
+
+This is a simple text file that lists all nodes with their position and range:
+
+```
+# name  x       y       range
+A       5       3       10
+B       10
+C       20      20
+```
+
+If `y` is left out, it defaults to 0.
+If `range` is left out, it defaults to 25.
+
+Nodes can also be pinned to a (virtual) hardware address, for this declare the nodes before giving their coordinates:
+
+```
+# name -> EUI-64 mapping
+A := 02:00:00:00:12:34:00:01
+B := 02:00:00:00:12:34:00:02
+C := 02:00:00:00:12:34:00:03
+
+# name  x       y       range
+A       5       3       10
+B       10
+C       20      20
+```
+
+To generate the topology file from such a map, just run `bin/topopgen -f <worldfile>`.

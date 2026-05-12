@@ -1,10 +1,9 @@
 /*
- * Copyright (C) 2017 Inria
- *
- * This file is subject to the terms and conditions of the GNU Lesser
- * General Public License v2.1. See the file LICENSE in the top level
- * directory for more details.
+ * SPDX-FileCopyrightText: 2017 Inria
+ * SPDX-License-Identifier: LGPL-2.1-only
  */
+
+#pragma once
 
 /**
  * @ingroup     boards_b-l072z-lrwan1
@@ -16,9 +15,6 @@
  * @author      Alexandre Abadie <alexandre.abadie@inria.fr>
  * @author      Thibault Tisserand <gzordrai@gmail.com>
  */
-
-#ifndef PERIPH_CONF_H
-#define PERIPH_CONF_H
 
 /* Add specific clock configuration (HSE, LSE) for this board here */
 #ifndef CONFIG_BOARD_HAS_LSE
@@ -50,7 +46,10 @@ static const dma_conf_t dma_config[] = {
 #define DMA_SHARED_ISR_0            isr_dma1_channel2_3
 #define DMA_SHARED_ISR_0_STREAMS    { 0, 1 } /* Indexes 0 and 1 of dma_config share the same isr */
 #define DMA_SHARED_ISR_1            isr_dma1_channel4_5_6_7
-#define DMA_SHARED_ISR_1_STREAMS    { 2, 3, 4 } /* Indexes 2, 3 and 4 of dma_config share the same isr */
+/*
+ * @brief Indexes 2, 3 and 4 of dma_config share the same isr
+ */
+#define DMA_SHARED_ISR_1_STREAMS    { 2, 3, 4 }
 
 #define DMA_NUMOF           ARRAY_SIZE(dma_config)
 /** @} */
@@ -167,5 +166,4 @@ static const adc_conf_t adc_config[] = {
 }
 #endif
 
-#endif /* PERIPH_CONF_H */
 /** @} */

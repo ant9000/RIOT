@@ -1,10 +1,7 @@
 /*
- * Copyright (C) 2020 Gunar Schorcht
- *               2021 Otto-von-Guericke-Universität Magdeburg
- *
- * This file is subject to the terms and conditions of the GNU Lesser
- * General Public License v2.1. See the file LICENSE in the top level
- * directory for more details.
+ * SPDX-FileCopyrightText: 2020 Gunar Schorcht
+ * SPDX-FileCopyrightText: 2021 Otto-von-Guericke-Universität Magdeburg
+ * SPDX-License-Identifier: LGPL-2.1-only
  */
 
 #pragma once
@@ -16,6 +13,15 @@
  *
  * @warning     This API is not stable yet and intended for internal use only
  *              as of now.
+ *
+ * # General
+ *
+ * Ports and pin numbers are not always internally defined as the same numbers
+ * that you would expect them to be. Therefore it is highly recommended to call
+ * the low level functions like gpio_ll_init() or gpio_ll_query_conf() with the
+ * gpio_get_port() and gpio_get_pin_num() functions instead of directly setting
+ * port or pin numbers. Using the helper functions will assure reliable
+ * operation on all platforms and GPIO banks.
  *
  * # Design Goals
  *
@@ -406,7 +412,7 @@ typedef union gpio_conf_minimal gpio_conf_t;
  * @warning The layout of this structure is implementation dependent and
  *          additional implementation specific fields might be present. For this
  *          reason, this structure must be initialized using designated
- *          initializers or zeroing out the whole contents using `memset()
+ *          initializers or zeroing out the whole contents using `memset()`
  *          before initializing the individual fields.
  *
  * See @ref gpio_conf_minimal for the minimal structure fields to expect.
@@ -821,11 +827,31 @@ static inline void gpio_ll_write(gpio_port_t port, uword_t state);
 
 /**
  * @brief   Extract the `gpio_port_t` from a `gpio_t`
+ *
+ * CPU specific implementation to return the GPIO port for a given
+ * GPIO pin.
+ *
+ * @param[in] pin GPIO pin structure, usually defined with the GPIO_PIN macro
+ *
+ * @return  GPIO port
+ *
  */
 static inline gpio_port_t gpio_get_port(gpio_t pin);
 
 /**
  * @brief   Extract the pin number from a `gpio_t`
+ *
+ * CPU specific implementation to return the internal pin number for a
+ * given GPIO pin.
+ *
+ * @note    The actual, internal pin numbers are not always directly related to
+ *          their name. For example on some microcontrollers as the nRF52,
+ *          the distinction between P0 and P1 pins is made by a bit that is set
+ *          in the pin numbers.
+ *
+ * @param[in] pin GPIO pin structure, usually defined with the GPIO_PIN macro
+ *
+ * @return  Internal pin number
  */
 static inline uint8_t gpio_get_pin_num(gpio_t pin);
 

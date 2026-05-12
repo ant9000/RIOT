@@ -333,28 +333,7 @@ APPLICATION := $(strip $(APPLICATION))
 
 # provide common external programs for `Makefile.include`s
 
-ifeq (,$(and $(DOWNLOAD_TO_STDOUT),$(DOWNLOAD_TO_FILE)))
-  ifeq (,$(WGET))
-    ifeq (0,$(shell which wget > /dev/null 2>&1 ; echo $$?))
-      WGET = $(call memoized,WGET,$(shell which wget))
-    endif
-  endif
-  ifeq (,$(CURL))
-    ifeq (0,$(shell which curl > /dev/null 2>&1 ; echo $$?))
-      CURL = $(call memoized,CURL,$(shell which curl))
-    endif
-  endif
-  ifeq (,$(WGET)$(CURL))
-    $(warning Neither wget nor curl is installed!)
-  endif
-
-  ifeq (,$(DOWNLOAD_TO_STDOUT))
-    DOWNLOAD_TO_STDOUT ?= $(if $(CURL),$(CURL) -s,$(WGET) -q -O-)
-  endif
-  ifeq (,$(DOWNLOAD_TO_FILE))
-    DOWNLOAD_TO_FILE ?= $(if $(WGET),$(WGET) -nv -c -O,$(CURL) -s -o)
-  endif
-endif
+DOWNLOAD_TO_FILE ?= $(DLCACHE)
 
 ifeq (,$(UNZIP_HERE))
   ifeq (0,$(shell which unzip > /dev/null 2>&1 ; echo $$?))
@@ -423,6 +402,8 @@ include $(RIOTMAKE)/kconfig.mk
 FEATURES_REQUIRED += $(filter arch_%,$(FEATURES_PROVIDED))
 # always select CPU core features
 FEATURES_REQUIRED += $(filter cpu_core_%,$(FEATURES_PROVIDED))
+# always "select" bug affecting the current build
+FEATURES_REQUIRED += $(filter bug_%,$(FEATURES_PROVIDED))
 
 # check if required features are provided and update $(FEATURES_USED)
 include $(RIOTMAKE)/features_check.inc.mk
@@ -450,6 +431,9 @@ include $(RIOTCPU)/$(CPU)/Makefile.include
 # include global Makefile.include for `boards` modules
 include $(RIOTBASE)/boards/Makefile.include
 
+# Include common programmer logic if available
+-include $(RIOTMAKE)/tools/$(PROGRAMMER).inc.mk
+
 # Include common serial logic to define TERMPROG, TERMFLAGS variables based on
 # the content of RIOT_TERMINAL
 include $(RIOTMAKE)/tools/serial.inc.mk
@@ -462,9 +446,6 @@ ifeq (1,$(EMULATE))
   TERMDEPS += $(EMULATORDEPS)
   DEBUGDEPS += $(EMULATORDEPS)
 endif
-
-# Include common programmer logic if available
--include $(RIOTMAKE)/tools/$(PROGRAMMER).inc.mk
 
 # Check if programmer is supported by the board, only if PROGRAMMERS_SUPPORTED
 # is set and if programmer is not iotlab
@@ -514,8 +495,6 @@ export CCACHE_CPP2=yes
 # set some settings useful for continuous integration builds
 ifeq ($(RIOT_CI_BUILD),1)
     RIOT_VERSION ?= buildtest
-    # set a dummy version number
-    RIOT_VERSION_CODE ?= $(RIOT_VERSION_DUMMY_CODE)
     ifneq ($(filter $(BOARD_INSUFFICIENT_MEMORY), $(BOARD)),)
         RIOTNOLINK:=1
     endif
@@ -560,7 +539,8 @@ include $(RIOTMAKE)/cflags.inc.mk
 -include $(RIOTBASE)/EXTRAVERSION
 
 include $(RIOTMAKE)/git_version.inc.mk
-RIOT_VERSION ?= $(or $(GIT_VERSION),'UNKNOWN (builddir: $(RIOTBASE))')
+RIOT_VERSION_GIT := $(or $(GIT_VERSION),'UNKNOWN (builddir: $(RIOTBASE))')
+RIOT_VERSION ?= $(RIOT_VERSION_GIT)
 RIOT_EXTRAVERSION ?= 0
 
 # Deprecate using RIOT_VERSION_OVERRIDE but currently keep the behavior
@@ -570,7 +550,7 @@ ifneq (,$(RIOT_VERSION_OVERRIDE))
 endif
 
 # Generate machine readable RIOT VERSION macro
-RIOT_VERSION_CODE ?= $(shell echo $(RIOT_VERSION) | \
+RIOT_VERSION_CODE ?= $(shell echo $(RIOT_VERSION_GIT) | \
                       sed -E 's/([0-9]+)\.([0-9]+)\.?([0-9]+)?.*/RIOT_VERSION_NUM\\\(\1,\2,0\3,$(RIOT_EXTRAVERSION)\\\)/' | \
                       grep RIOT_VERSION_NUM || echo "$(RIOT_VERSION_DUMMY_CODE)")
 
@@ -902,17 +882,44 @@ list-ttys:
 doc doc-man doc-latex:
 	$(MAKE) -C $(RIOTBASE) $@
 
+ifeq (, $(DEBUGGER))
+debug:
+	@echo '$$(DEBUGGER) is not set. This means that `make debug` is not'\
+	' supported by your current setup. A common reason is that PROGRAMMER'\
+	' is set to something like flashing via bootloader, where debugging is'\
+	' not possible.'
+	@false
+else
 debug: $(DEBUGDEPS)
 	$(call check_cmd,$(DEBUGGER),Debug program)
 	$(DEBUGGER) $(DEBUGGER_FLAGS)
+endif
 
+ifeq (, $(DEBUGCLIENT))
+debug-client:
+	@echo '$$(DEBUGCLIENT) is not set. This means that `make debug` is not'\
+	' supported by your current setup. A common reason is that PROGRAMMER'\
+	' is set to something like flashing via bootloader, where debugging is'\
+	' not possible.'
+	@false
+else
 debug-client:
 	$(call check_cmd,$(DEBUGCLIENT),Debug client program)
 	$(DEBUGCLIENT) $(DEBUGCLIENT_FLAGS)
+endif
 
+ifeq (, $(DEBUGSERVER))
+debug-server:
+	@echo '$$(DEBUGSERVER) is not set. This means that `make debug` is not'\
+	' supported by your current setup. A common reason is that PROGRAMMER'\
+	' is set to something like flashing via bootloader, where debugging is'\
+	' not possible.'
+	@false
+else
 debug-server:
 	$(call check_cmd,$(DEBUGSERVER),Debug server program)
 	$(DEBUGSERVER) $(DEBUGSERVER_FLAGS)
+endif
 
 ifeq (1,$(EMULATE))
 emulate:
@@ -979,6 +986,14 @@ ifeq (, $(filter help generate-Makefile.ci, $(MAKECMDGOALS)))
     EXPECT_ERRORS := 1
   endif
 
+BOARDS_SUPPORTED += $(BOARD_WHITELIST)
+BOARDS_UNSUPPORTED += $(BOARD_BLACKLIST)
+
+ifneq (, $(BOARD_WHITELIST)$(BOARD_BLACKLIST))
+  $(shell $(COLOR_ECHO) "$(COLOR_YELLOW)BOARD_WHITELIST has been renamed to BOARDS_SUPPORTED and BOARD_BLACKLIST to BOARDS_UNSUPPORTED.$(COLOR_RESET)" 1>&2)
+  $(shell $(COLOR_ECHO) "The contents of BOARD_WHITELIST have been appended to BOARDS_SUPPORTED and the contents of BOARD_BLACKLIST to BOARDS_UNSUPPORTED for compatibility." 1>&2)
+endif
+
   # Test if any used feature conflict with another one.
   ifneq (,$(FEATURES_CONFLICTING))
     $(shell $(COLOR_ECHO) "$(COLOR_RED)The following features conflict:$(COLOR_RESET)"\
@@ -988,21 +1003,21 @@ ifeq (, $(filter help generate-Makefile.ci, $(MAKECMDGOALS)))
     endif
     EXPECT_ERRORS := 1
   endif
-
-  # If there is a whitelist, then test if the board is whitelisted.
-  ifneq (, $(BOARD_WHITELIST))
-    ifeq (, $(filter $(BOARD_WHITELIST), $(BOARD)))
-      $(shell $(COLOR_ECHO) "$(COLOR_RED)The selected BOARD=$(BOARD) is not whitelisted:$(COLOR_RESET) $(BOARD_WHITELIST)" 1>&2)
+  # If there is a list of supported boards, then test if the board is supported.
+  ifneq (,$(strip $(BOARDS_SUPPORTED)))
+    ifeq (, $(filter $(BOARDS_SUPPORTED), $(BOARD)))
+      $(shell $(COLOR_ECHO) "$(COLOR_RED)The selected BOARD=$(BOARD) is not listed in BOARDS_SUPPORTED$(COLOR_RESET)." 1>&2)
+      $(shell $(COLOR_ECHO) "$(COLOR_YELLOW)When the list BOARDS_SUPPORTED is not empty, only boards explicitly listed there are supported.$(COLOR_RESET)" 1>&2)
+      $(shell $(COLOR_ECHO) "BOARDS_SUPPORTED = \"$(BOARDS_SUPPORTED)\"" 1>&2)
       EXPECT_ERRORS := 1
     endif
   endif
 
-  # If there is a blacklist, then test if the board is blacklisted.
-  ifneq (, $(BOARD_BLACKLIST))
-    ifneq (, $(filter $(BOARD_BLACKLIST), $(BOARD)))
-      $(shell $(COLOR_ECHO) "$(COLOR_RED)The selected BOARD=$(BOARD) is blacklisted:$(COLOR_RESET) $(BOARD_BLACKLIST)" 1>&2)
-      EXPECT_ERRORS := 1
-    endif
+  # If there is a list of unsupported boards, then test if the board is unsupported.
+  ifneq (,$(filter $(BOARDS_UNSUPPORTED),$(BOARD)))
+    $(shell $(COLOR_ECHO) "$(COLOR_RED)The selected BOARD=$(BOARD) is listed in BOARDS_UNSUPPORTED.$(COLOR_RESET)" 1>&2)
+    $(shell $(COLOR_ECHO) "BOARDS_UNSUPPORTED = $(BOARDS_UNSUPPORTED)" 1>&2)
+    EXPECT_ERRORS := 1
   endif
 
   #  test if toolchain is supported.

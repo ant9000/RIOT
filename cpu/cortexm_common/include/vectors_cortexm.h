@@ -1,9 +1,6 @@
 /*
- * Copyright (C) 2015 Freie Universität Berlin
- *
- * This file is subject to the terms and conditions of the GNU Lesser
- * General Public License v2.1. See the file LICENSE in the top level
- * directory for more details.
+ * SPDX-FileCopyrightText: 2015 Freie Universität Berlin
+ * SPDX-License-Identifier: LGPL-2.1-only
  */
 
 #pragma once
@@ -93,6 +90,15 @@ void hard_fault_default(void);
 /* The following four exceptions are only present for Cortex-M3 and -M4 CPUs */
 #if defined(CPU_CORE_CORTEX_M3) || defined(CPU_CORE_CORTEX_M4) || \
     defined(CPU_CORE_CORTEX_M4F) || defined(CPU_CORE_CORTEX_M7)
+
+/**
+ * @brief Default memory manager behavior callback (weak function)
+ *
+ * @retval >=0 when the memory fault has been handled,
+ * @retval < 0 otherwise.
+ */
+int mem_manage_handler(void);
+
 /**
  * @brief   Memory management exception handler
  *

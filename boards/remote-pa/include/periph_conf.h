@@ -1,11 +1,10 @@
 /*
- * Copyright (C) 2014-2016 Freie Universität Berlin
- *               2015 Zolertia SL
- *
- * This file is subject to the terms and conditions of the GNU Lesser
- * General Public License v2.1. See the file LICENSE in the top level
- * directory for more details.
+ * SPDX-FileCopyrightText: 2014-2016 Freie Universität Berlin
+ * SPDX-FileCopyrightText: 2015 Zolertia SL
+ * SPDX-License-Identifier: LGPL-2.1-only
  */
+
+#pragma once
 
 /**
  * @ingroup     boards_remote-pa
@@ -18,9 +17,6 @@
  * @author      Antonio Lignan <alinan@zolertia.com>
  * @author      Sebastian Meiling <s@mlng.net>
  */
-
-#ifndef PERIPH_CONF_H
-#define PERIPH_CONF_H
 
 #include "periph_cpu.h"
 #include "cfg_clk_default.h"
@@ -64,7 +60,7 @@ static const spi_conf_t spi_config[] = {
         .num      = 1,
         .mosi_pin = GPIO_PIN(2, 7),
         .miso_pin = GPIO_PIN(0, 4),
-        .sck_pin  = GPIO_PIN(1 ,5),
+        .sck_pin  = GPIO_PIN(1, 5),
         .cs_pin   = SPI_CS_UNDEF,
     }
 };
@@ -90,5 +86,4 @@ static const adc_conf_t adc_config[] = {
 } /* end extern "C" */
 #endif
 
-#endif /* PERIPH_CONF_H */
 /** @} */

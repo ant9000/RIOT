@@ -1,10 +1,9 @@
 /*
- * Copyright (C) 2017 Baptiste Clenet <bapclenet@gmail.com>
- *
- * This file is subject to the terms and conditions of the GNU Lesser
- * General Public License v2.1. See the file LICENSE in the top level
- * directory for more details.
+ * SPDX-FileCopyrightText: 2017 Baptiste Clenet <bapclenet@gmail.com>
+ * SPDX-License-Identifier: LGPL-2.1-only
  */
+
+#pragma once
 
 /**
  * @ingroup     boards_samr30-xpro
@@ -15,9 +14,6 @@
  *
  * @author      Baptiste Clenet <bapclenet@gmail.com>
  */
-
-#ifndef PERIPH_CONF_H
-#define PERIPH_CONF_H
 
 #include "periph_cpu.h"
 
@@ -59,8 +55,8 @@ static const tc32_conf_t timer_config[] = {
 static const uart_conf_t uart_config[] = {
     {    /* Virtual COM Port */
         .dev      = &SERCOM0->USART,
-        .rx_pin   = GPIO_PIN(PA,5),
-        .tx_pin   = GPIO_PIN(PA,4),
+        .rx_pin   = GPIO_PIN(PA, 5),
+        .tx_pin   = GPIO_PIN(PA, 4),
 #ifdef MODULE_PERIPH_UART_HW_FC
         .rts_pin  = GPIO_UNDEF,
         .cts_pin  = GPIO_UNDEF,
@@ -200,5 +196,4 @@ static const sam0_common_usb_config_t sam_usbdev_config[] = {
 }
 #endif
 
-#endif /* PERIPH_CONF_H */
 /** @} */

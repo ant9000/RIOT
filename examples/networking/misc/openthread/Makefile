@@ -4,7 +4,7 @@ APPLICATION = openthread
 BOARD ?= samr21-xpro
 
 # These are the boards that OpenThread stack has been tested on
-BOARD_WHITELIST := \
+BOARDS_SUPPORTED := \
                     samr21-xpro \
                     iotlab-m3 \
                     iotlab-a8-m3 \
@@ -20,6 +20,7 @@ BOARD_WHITELIST := \
                     openmote-cc2538 \
                     nrf52840dk \
                     nrf52840-mdk \
+                    adafruit-feather-nrf52840-sense \
                     reel \
                     #
 

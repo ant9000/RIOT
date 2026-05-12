@@ -1,10 +1,9 @@
 /*
- * Copyright (C) 2016-2020 Bas Stottelaar <basstottelaar@gmail.com>
- *
- * This file is subject to the terms and conditions of the GNU Lesser
- * General Public License v2.1. See the file LICENSE in the top level
- * directory for more details.
+ * SPDX-FileCopyrightText: 2016-2020 Bas Stottelaar <basstottelaar@gmail.com>
+ * SPDX-License-Identifier: LGPL-2.1-only
  */
+
+#pragma once
 
 /**
  * @ingroup     boards_slstk3701a
@@ -15,9 +14,6 @@
  *
  * @author      Bas Stottelaar <basstottelaar@gmail.com>
  */
-
-#ifndef GPIO_PARAMS_H
-#define GPIO_PARAMS_H
 
 #include "board.h"
 #include "saul/periph.h"
@@ -34,12 +30,14 @@ static const  saul_gpio_params_t saul_gpio_params[] =
     {
         .name = "LED 0",
         .pin = LED0_PIN,
-        .mode = GPIO_OUT
+        .mode = GPIO_OUT,
+        .flags = SAUL_GPIO_INVERTED | SAUL_GPIO_INIT_CLEAR
     },
     {
         .name = "LED 1",
         .pin = LED1_PIN,
-        .mode = GPIO_OUT
+        .mode = GPIO_OUT,
+        .flags = SAUL_GPIO_INVERTED | SAUL_GPIO_INIT_CLEAR
     },
     {
         .name = "Button 1",
@@ -59,5 +57,4 @@ static const  saul_gpio_params_t saul_gpio_params[] =
 }
 #endif
 
-#endif /* GPIO_PARAMS_H */
 /** @} */

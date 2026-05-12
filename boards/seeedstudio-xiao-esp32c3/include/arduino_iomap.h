@@ -1,10 +1,9 @@
 /*
- * Copyright (C)  2025 David Picard
- *
- * This file is subject to the terms and conditions of the GNU Lesser
- * General Public License v2.1. See the file LICENSE in the top level
- * directory for more details.
+ * SPDX-FileCopyrightText: 2025 David Picard
+ * SPDX-License-Identifier: LGPL-2.1-only
  */
+
+#pragma once
 
 /**
  * @ingroup     boards_seeedstudio-xiao-esp32c3
@@ -15,9 +14,6 @@
  *
  * @author      David Picard
  */
-
-#ifndef ARDUINO_IOMAP_H
-#define ARDUINO_IOMAP_H
 
 #include "periph/gpio.h"
 #include "periph/adc.h"
@@ -60,5 +56,4 @@ extern "C" {
 }
 #endif
 
-#endif /* ARDUINO_IOMAP_H */
 /** @} */

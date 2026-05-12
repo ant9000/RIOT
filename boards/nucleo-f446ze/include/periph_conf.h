@@ -1,10 +1,9 @@
 /*
- * Copyright (C) 2017 Inria
- *
- * This file is subject to the terms and conditions of the GNU Lesser
- * General Public License v2.1. See the file LICENSE in the top level
- * directory for more details.
+ * SPDX-FileCopyrightText: 2017 Inria
+ * SPDX-License-Identifier: LGPL-2.1-only
  */
+
+#pragma once
 
 /**
  * @ingroup     boards_nucleo-f446ze
@@ -15,9 +14,6 @@
  *
  * @author      Alexandre Abadie <alexandre.abadie@inria.fr>
  */
-
-#ifndef PERIPH_CONF_H
-#define PERIPH_CONF_H
 
 /* This board provides an LSE */
 #ifndef CONFIG_BOARD_HAS_LSE
@@ -197,7 +193,7 @@ static const adc_conf_t adc_config[] = {
     { .pin = GPIO_PIN(PORT_B, 0), .dev = 2, .chan =  9 }, /* ADC123_IN9   */
     { .pin = GPIO_PIN(PORT_C, 1), .dev = 2, .chan = 15 }, /* ADC3_IN15    */
     { .pin = GPIO_PIN(PORT_C, 0), .dev = 2, .chan =  8 }, /* ADC3_IN8     */
-    { .pin = GPIO_UNDEF, 	  .dev = 0, .chan = 18 }, /* VBAT */
+    { .pin = GPIO_UNDEF,          .dev = 0, .chan = 18 }, /* VBAT */
 };
 
 /**
@@ -213,5 +209,4 @@ static const adc_conf_t adc_config[] = {
 }
 #endif
 
-#endif /* PERIPH_CONF_H */
 /** @} */

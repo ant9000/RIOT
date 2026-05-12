@@ -1,10 +1,9 @@
 /*
- * Copyright (C)    2021 Franz Freitag, Justus Krebs, Nick Weiler
- *
- * This file is subject to the terms and conditions of the GNU Lesser
- * General Public License v2.1. See the file LICENSE in the top level
- * directory for more details.
+ * SPDX-FileCopyrightText: 2021 Franz Freitag, Justus Krebs, Nick Weiler
+ * SPDX-License-Identifier: LGPL-2.1-only
  */
+
+#pragma once
 
 /**
  * @ingroup     boards_seeeduino_xiao
@@ -18,9 +17,6 @@
  * @author      Justus Krebs <justus.krebs@st.ovgu.de>
  * @author      Nick Weiler <nick.weiler@st.ovgu.de>
  */
-
-#ifndef BOARD_H
-#define BOARD_H
 
 #include "cpu.h"
 #include "periph_conf.h"
@@ -69,9 +65,10 @@ extern "C" {
 #define INTERNAL_PERIPHERAL_PID         (0x0057)
 /** @} */
 
+#define BOOTLOADER_UF2    1     /**< This board uses the UF2 bootloader */
+
 #ifdef __cplusplus
 }
 #endif
 
-#endif /* BOARD_H */
 /** @} */

@@ -274,14 +274,14 @@ static inline uint64_t atomic_load_u64(const volatile uint64_t *var);
 static inline unsigned atomic_load_unsigned(const volatile unsigned *var)
 {
     if (sizeof(uint64_t) == sizeof(unsigned)) {
-        return atomic_load_u64((volatile void *)var);
+        return atomic_load_u64((const volatile uint64_t *)(uintptr_t)var);
     }
 
     if (sizeof(uint32_t) == sizeof(unsigned)) {
-        return atomic_load_u32((volatile void *)var);
+        return atomic_load_u32((const volatile uint32_t *)(uintptr_t)var);
     }
 
-    return atomic_load_u16((volatile void *)var);
+    return atomic_load_u16((const volatile uint16_t *)(uintptr_t)var);
 }
 
 /**
@@ -362,13 +362,13 @@ static inline void atomic_store_u64(volatile uint64_t *dest, uint64_t val);
 static inline void atomic_store_unsigned(volatile unsigned *dest, unsigned val)
 {
     if (sizeof(uint64_t) == sizeof(unsigned)) {
-        atomic_store_u64((volatile void *)dest, val);
+        atomic_store_u64((volatile uint64_t *)(uintptr_t)dest, val);
     }
     else if (sizeof(uint32_t) == sizeof(unsigned)) {
-        atomic_store_u32((volatile void *)dest, val);
+        atomic_store_u32((volatile uint32_t *)(uintptr_t)dest, val);
     }
     else {
-        atomic_store_u16((volatile void *)dest, val);
+        atomic_store_u16((volatile uint16_t *)(uintptr_t)dest, val);
     }
 }
 
@@ -462,14 +462,14 @@ static inline unsigned atomic_fetch_add_unsigned(volatile unsigned *dest,
                                                  unsigned summand)
 {
     if (sizeof(unsigned) == sizeof(uint64_t)) {
-        return atomic_fetch_add_u64((volatile void *)dest, summand);
+        return atomic_fetch_add_u64((volatile uint64_t *)(uintptr_t)dest, summand);
     }
 
     if (sizeof(unsigned) == sizeof(uint32_t)) {
-        return atomic_fetch_add_u32((volatile void *)dest, summand);
+        return atomic_fetch_add_u32((volatile uint32_t *)(uintptr_t)dest, summand);
     }
 
-    return atomic_fetch_add_u16((volatile void *)dest, summand);
+    return atomic_fetch_add_u16((volatile uint16_t *)(uintptr_t)dest, summand);
 }
 /** @} */
 
@@ -528,14 +528,14 @@ static inline unsigned atomic_fetch_sub_unsigned(volatile unsigned *dest,
                                                  unsigned subtrahend)
 {
     if (sizeof(unsigned) == sizeof(uint64_t)) {
-        return atomic_fetch_sub_u64((volatile void *)dest, subtrahend);
+        return atomic_fetch_sub_u64((volatile uint64_t *)(uintptr_t)dest, subtrahend);
     }
 
     if (sizeof(unsigned) == sizeof(uint32_t)) {
-        return atomic_fetch_sub_u32((volatile void *)dest, subtrahend);
+        return atomic_fetch_sub_u32((volatile uint32_t *)(uintptr_t)dest, subtrahend);
     }
 
-    return atomic_fetch_sub_u16((volatile void *)dest, subtrahend);
+    return atomic_fetch_sub_u16((volatile uint16_t *)(uintptr_t)dest, subtrahend);
 }
 /** @} */
 
@@ -593,14 +593,14 @@ static inline unsigned atomic_fetch_or_unsigned(volatile unsigned *dest,
                                                 unsigned val)
 {
     if (sizeof(unsigned) == sizeof(uint64_t)) {
-        return atomic_fetch_or_u64((volatile void *)dest, val);
+        return atomic_fetch_or_u64((volatile uint64_t *)(uintptr_t)dest, val);
     }
 
     if (sizeof(unsigned) == sizeof(uint32_t)) {
-        return atomic_fetch_or_u32((volatile void *)dest, val);
+        return atomic_fetch_or_u32((volatile uint32_t *)(uintptr_t)dest, val);
     }
 
-    return atomic_fetch_or_u16((volatile void *)dest, val);
+    return atomic_fetch_or_u16((volatile uint16_t *)(uintptr_t)dest, val);
 }
 /** @} */
 
@@ -658,14 +658,14 @@ static inline unsigned atomic_fetch_xor_unsigned(volatile unsigned *dest,
                                                  unsigned val)
 {
     if (sizeof(unsigned) == sizeof(uint64_t)) {
-        return atomic_fetch_xor_u64((volatile void *)dest, val);
+        return atomic_fetch_xor_u64((volatile uint64_t *)(uintptr_t)dest, val);
     }
 
     if (sizeof(unsigned) == sizeof(uint32_t)) {
-        return atomic_fetch_xor_u32((volatile void *)dest, val);
+        return atomic_fetch_xor_u32((volatile uint32_t *)(uintptr_t)dest, val);
     }
 
-    return atomic_fetch_xor_u16((volatile void *)dest, val);
+    return atomic_fetch_xor_u16((volatile uint16_t *)(uintptr_t)dest, val);
 }
 /** @} */
 
@@ -723,14 +723,14 @@ static inline unsigned atomic_fetch_and_unsigned(volatile unsigned *dest,
                                                  unsigned val)
 {
     if (sizeof(unsigned) == sizeof(uint64_t)) {
-        return atomic_fetch_and_u64((volatile void *)dest, val);
+        return atomic_fetch_and_u64((volatile uint64_t *)(uintptr_t)dest, val);
     }
 
     if (sizeof(unsigned) == sizeof(uint32_t)) {
-        return atomic_fetch_and_u32((volatile void *)dest, val);
+        return atomic_fetch_and_u32((volatile uint32_t *)(uintptr_t)dest, val);
     }
 
-    return atomic_fetch_and_u16((volatile void *)dest, val);
+    return atomic_fetch_and_u16((volatile uint16_t *)(uintptr_t)dest, val);
 }
 /** @} */
 
@@ -935,14 +935,14 @@ static inline unsigned semi_atomic_fetch_add_unsigned(volatile unsigned *dest,
                                                       unsigned summand)
 {
     if (sizeof(unsigned) == sizeof(uint64_t)) {
-        return semi_atomic_fetch_add_u64((volatile void *)dest, summand);
+        return semi_atomic_fetch_add_u64((volatile uint64_t *)(uintptr_t)dest, summand);
     }
 
     if (sizeof(unsigned) == sizeof(uint32_t)) {
-        return semi_atomic_fetch_add_u32((volatile void *)dest, summand);
+        return semi_atomic_fetch_add_u32((volatile uint32_t *)(uintptr_t)dest, summand);
     }
 
-    return semi_atomic_fetch_add_u16((volatile void *)dest, summand);
+    return semi_atomic_fetch_add_u16((volatile uint16_t *)(uintptr_t)dest, summand);
 }
 /** @} */
 
@@ -1001,14 +1001,14 @@ static inline unsigned semi_atomic_fetch_sub_unsigned(volatile unsigned *dest,
                                                       unsigned subtrahend)
 {
     if (sizeof(unsigned) == sizeof(uint64_t)) {
-        return semi_atomic_fetch_sub_u64((volatile void *)dest, subtrahend);
+        return semi_atomic_fetch_sub_u64((volatile uint64_t *)(uintptr_t)dest, subtrahend);
     }
 
     if (sizeof(unsigned) == sizeof(uint32_t)) {
-        return semi_atomic_fetch_sub_u32((volatile void *)dest, subtrahend);
+        return semi_atomic_fetch_sub_u32((volatile uint32_t *)(uintptr_t)dest, subtrahend);
     }
 
-    return semi_atomic_fetch_sub_u16((volatile void *)dest, subtrahend);
+    return semi_atomic_fetch_sub_u16((volatile uint16_t *)(uintptr_t)dest, subtrahend);
 }
 /** @} */
 
@@ -1066,14 +1066,14 @@ static inline unsigned semi_atomic_fetch_or_unsigned(volatile unsigned *dest,
                                                      unsigned val)
 {
     if (sizeof(unsigned) == sizeof(uint64_t)) {
-        return semi_atomic_fetch_or_u64((volatile void *)dest, val);
+        return semi_atomic_fetch_or_u64((volatile uint64_t *)(uintptr_t)dest, val);
     }
 
     if (sizeof(unsigned) == sizeof(uint32_t)) {
-        return semi_atomic_fetch_or_u32((volatile void *)dest, val);
+        return semi_atomic_fetch_or_u32((volatile uint32_t *)(uintptr_t)dest, val);
     }
 
-    return semi_atomic_fetch_or_u16((volatile void *)dest, val);
+    return semi_atomic_fetch_or_u16((volatile uint16_t *)(uintptr_t)dest, val);
 }
 /** @} */
 
@@ -1132,14 +1132,14 @@ static inline unsigned semi_atomic_fetch_xor_unsigned(volatile unsigned *dest,
                                                       unsigned val)
 {
     if (sizeof(unsigned) == sizeof(uint64_t)) {
-        return semi_atomic_fetch_xor_u64((volatile void *)dest, val);
+        return semi_atomic_fetch_xor_u64((volatile uint64_t *)(uintptr_t)dest, val);
     }
 
     if (sizeof(unsigned) == sizeof(uint32_t)) {
-        return semi_atomic_fetch_xor_u32((volatile void *)dest, val);
+        return semi_atomic_fetch_xor_u32((volatile uint32_t *)(uintptr_t)dest, val);
     }
 
-    return semi_atomic_fetch_xor_u16((volatile void *)dest, val);
+    return semi_atomic_fetch_xor_u16((volatile uint16_t *)(uintptr_t)dest, val);
 }
 /** @} */
 
@@ -1198,14 +1198,14 @@ static inline unsigned semi_atomic_fetch_and_unsigned(volatile unsigned *dest,
                                                       unsigned val)
 {
     if (sizeof(unsigned) == sizeof(uint64_t)) {
-        return semi_atomic_fetch_and_u64((volatile void *)dest, val);
+        return semi_atomic_fetch_and_u64((volatile uint64_t *)(uintptr_t)dest, val);
     }
 
     if (sizeof(unsigned) == sizeof(uint32_t)) {
-        return semi_atomic_fetch_and_u32((volatile void *)dest, val);
+        return semi_atomic_fetch_and_u32((volatile uint32_t *)(uintptr_t)dest, val);
     }
 
-    return semi_atomic_fetch_and_u16((volatile void *)dest, val);
+    return semi_atomic_fetch_and_u16((volatile uint16_t *)(uintptr_t)dest, val);
 }
 /** @} */
 
@@ -1358,25 +1358,25 @@ ATOMIC_FETCH_OP_IMPL(and, &, u64, uint64_t)
 static inline atomic_bit_u8_t atomic_bit_u8(volatile uint8_t *dest,
                                             uint8_t bit)
 {
-    atomic_bit_u8_t result = { .dest = dest, .mask = 1U << bit };
+    atomic_bit_u8_t result = { .dest = dest, .mask = (uint8_t)(1U << bit) };
     return result;
 }
 static inline atomic_bit_u16_t atomic_bit_u16(volatile uint16_t *dest,
                                               uint8_t bit)
 {
-    atomic_bit_u16_t result = { .dest = dest, .mask = 1U << bit };
+    atomic_bit_u16_t result = { .dest = dest, .mask = (uint16_t)(1U << bit) };
     return result;
 }
 static inline atomic_bit_u32_t atomic_bit_u32(volatile uint32_t *dest,
                                               uint8_t bit)
 {
-    atomic_bit_u32_t result = { .dest = dest, .mask = 1UL << bit };
+    atomic_bit_u32_t result = { .dest = dest, .mask = (uint32_t)(1UL << bit) };
     return result;
 }
 static inline atomic_bit_u64_t atomic_bit_u64(volatile uint64_t *dest,
                                               uint8_t bit)
 {
-    atomic_bit_u64_t result = { .dest = dest, .mask = 1ULL << bit };
+    atomic_bit_u64_t result = { .dest = dest, .mask = (uint64_t)(1ULL << bit) };
     return result;
 }
 static inline void atomic_set_bit_u8(atomic_bit_u8_t bit)

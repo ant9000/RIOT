@@ -1,10 +1,9 @@
 /*
- * Copyright (C) 2015  Freie Universität Berlin
- *
- * This file is subject to the terms and conditions of the GNU Lesser
- * General Public License v2.1. See the file LICENSE in the top level
- * directory for more details.
+ * SPDX-FileCopyrightText: 2015 Freie Universität Berlin
+ * SPDX-License-Identifier: LGPL-2.1-only
  */
+
+#pragma once
 
 /**
  * @ingroup     boards_nucleo-f091rc
@@ -15,9 +14,6 @@
  *
  * @author      Hauke Petersen <hauke.petersen@fu-berlin.de>
  */
-
-#ifndef PERIPH_CONF_H
-#define PERIPH_CONF_H
 
 /* HSE available on this board */
 #ifndef CONFIG_BOARD_HAS_HSE
@@ -166,7 +162,7 @@ static const pwm_conf_t pwm_config[] = {
         .rcc_mask = RCC_APB1ENR_TIM2EN,
         .chan     = { { .pin = GPIO_PIN(PORT_B, 3)  /* D3 */, .cc_chan = 1 },
                       { .pin = GPIO_PIN(PORT_B, 10) /* D6 */, .cc_chan = 2 },
-                      { .pin = GPIO_PIN(PORT_B, 11)         , .cc_chan = 3 },
+                      { .pin = GPIO_PIN(PORT_B, 11),          .cc_chan = 3 },
                       { .pin = GPIO_UNDEF,                    .cc_chan = 0 } },
         .af       = GPIO_AF2,
         .bus      = APB1
@@ -208,5 +204,4 @@ static const adc_conf_t adc_config[] = {
 }
 #endif
 
-#endif /* PERIPH_CONF_H */
 /** @} */

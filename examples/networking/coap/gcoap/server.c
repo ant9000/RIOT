@@ -1,9 +1,6 @@
 /*
- * Copyright (c) 2015-2017 Ken Bannister. All rights reserved.
- *
- * This file is subject to the terms and conditions of the GNU Lesser
- * General Public License v2.1. See the file LICENSE in the top level
- * directory for more details.
+ * SPDX-FileCopyrightText: 2015-2017 Ken Bannister
+ * SPDX-License-Identifier: LGPL-2.1-only
  */
 
 /**
@@ -65,7 +62,8 @@ static const credman_credential_t credential = {
 static ssize_t _encode_link(const coap_resource_t *resource, char *buf,
                             size_t maxlen, coap_link_encoder_ctx_t *context);
 static ssize_t _stats_handler(coap_pkt_t* pdu, uint8_t *buf, size_t len, coap_request_ctx_t *ctx);
-static ssize_t _riot_board_handler(coap_pkt_t* pdu, uint8_t *buf, size_t len, coap_request_ctx_t *ctx);
+static ssize_t _riot_board_handler(coap_pkt_t* pdu, uint8_t *buf, size_t len,
+                                   coap_request_ctx_t *ctx);
 #if IS_USED(MODULE_PERIPH_RTC)
 static ssize_t _rtc_handler(coap_pkt_t* pdu, uint8_t *buf, size_t len, coap_request_ctx_t *ctx);
 #endif
@@ -122,7 +120,7 @@ static void _rtc_notify_observers(void *arg)
     }
     size_t len;
     char str_time[20] = "";
-    uint8_t buf[sizeof(coap_hdr_t) + COAP_TOKEN_LENGTH_MAX + 1 + sizeof(str_time)];
+    uint8_t buf[sizeof(coap_udp_hdr_t) + COAP_TOKEN_LENGTH_MAX + 1 + sizeof(str_time)];
     coap_pkt_t pdu;
     const coap_resource_t *rtc_resource = NULL;
     const gcoap_listener_t *listener = NULL;
@@ -209,7 +207,8 @@ static ssize_t _stats_handler(coap_pkt_t* pdu, uint8_t *buf, size_t len, coap_re
     return 0;
 }
 
-static ssize_t _riot_board_handler(coap_pkt_t *pdu, uint8_t *buf, size_t len, coap_request_ctx_t *ctx)
+static ssize_t _riot_board_handler(coap_pkt_t *pdu, uint8_t *buf, size_t len,
+                                   coap_request_ctx_t *ctx)
 {
     (void)ctx;
     gcoap_resp_init(pdu, buf, len, COAP_CODE_CONTENT);

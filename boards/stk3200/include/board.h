@@ -1,10 +1,9 @@
 /*
- * Copyright (C) 2015-2020 Freie Universität Berlin
- *
- * This file is subject to the terms and conditions of the GNU Lesser
- * General Public License v2.1. See the file LICENSE in the top level
- * directory for more details.
+ * SPDX-FileCopyrightText: 2015-2020 Freie Universität Berlin
+ * SPDX-License-Identifier: LGPL-2.1-only
  */
+
+#pragma once
 
 /**
  * @ingroup     boards_stk3200
@@ -16,9 +15,6 @@
  * @author      Hauke Petersen <hauke.petersen@fu-berlin.de>
  * @author      Bas Stottelaar <basstottelaar@gmail.com>
  */
-
-#ifndef BOARD_H
-#define BOARD_H
 
 #include "cpu.h"
 #include "periph_conf.h"
@@ -33,13 +29,14 @@ extern "C" {
 /**
  * @name    Xtimer configuration
  *
- * The timer runs at 250 kHz.
+ * The timer runs at 250 kHz to increase accuracy.
  * @{
  */
-#define XTIMER_DEV          (TIMER_DEV(0))
-#define XTIMER_HZ           (250000UL)
-#define XTIMER_WIDTH        (16)
-#define XTIMER_CHAN         (0)
+#define CONFIG_ZTIMER_USEC_DEV              (TIMER_DEV(0))  /**< Timer peripheral for ztimer */
+#define CONFIG_ZTIMER_USEC_BASE_FREQ        (250000UL)      /**< Running at 250 kHz */
+#define CONFIG_ZTIMER_USEC_WIDTH            (16)            /**< Running on a 16-bit timer */
+#define CONFIG_ZTIMER_USEC_ADJUST_SET       (56)            /**< Overhead for ztimer_set */
+#define CONFIG_ZTIMER_USEC_ADJUST_SLEEP     (64)            /**< Overhead for ztimer_sleep */
 /** @} */
 
 /**
@@ -106,5 +103,4 @@ extern "C" {
 }
 #endif
 
-#endif /* BOARD_H */
 /** @} */

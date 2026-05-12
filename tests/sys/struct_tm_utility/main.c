@@ -1,19 +1,6 @@
 /*
- * Copyright (C) 2014  René Kijewski  <rene.kijewski@fu-berlin.de>
- *
- * This library is free software; you can redistribute it and/or
- * modify it under the terms of the GNU Lesser General Public
- * License as published by the Free Software Foundation; either
- * version 2.1 of the License, or (at your option) any later version.
- *
- * This library is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
- * Lesser General Public License for more details.
- *
- * You should have received a copy of the GNU Lesser General Public
- * License along with this library; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
+ * SPDX-FileCopyrightText: 2014 René Kijewski <rene.kijewski@fu-berlin.de>
+ * SPDX-License-Identifier: LGPL-2.1-or-later
  */
 
 /**
@@ -69,6 +56,8 @@ static int cmd_days_in(int argc, char **argv)
     }
 }
 
+SHELL_COMMAND(days_in, "Tells you the number of days in a month.", cmd_days_in);
+
 static int cmd_leap_year(int argc, char **argv)
 {
     int year;
@@ -85,6 +74,8 @@ static int cmd_leap_year(int argc, char **argv)
     }
 }
 
+SHELL_COMMAND(leap_year, "Tells you if a supplied year is a leap year.", cmd_leap_year);
+
 static int cmd_doomsday(int argc, char **argv)
 {
     int year;
@@ -100,6 +91,8 @@ static int cmd_doomsday(int argc, char **argv)
         return 0;
     }
 }
+
+SHELL_COMMAND(doomsday, "Tells you the wday Doomsday of the supplied year.", cmd_doomsday);
 
 static int cmd_day(int argc, char **argv)
 {
@@ -131,20 +124,14 @@ static int cmd_day(int argc, char **argv)
     }
 }
 
-static const shell_command_t shell_commands[] = {
-    { "days_in", "Tells you the number of days in a month.", cmd_days_in },
-    { "leap_year", "Tells you if a supplied year is a leap year.", cmd_leap_year },
-    { "doomsday", "Tells you the wday Doomsday of the supplied year.", cmd_doomsday },
-    { "day", "Tells you the day of the supplied date.", cmd_day },
-    { NULL, NULL, NULL }
-};
+SHELL_COMMAND(day, "Tells you the day of the supplied date.", cmd_day);
 
 int main(void)
 {
     puts("`struct tm` utility shell.");
 
     char line_buf[SHELL_DEFAULT_BUFSIZE];
-    shell_run(shell_commands, line_buf, SHELL_DEFAULT_BUFSIZE);
+    shell_run(NULL, line_buf, SHELL_DEFAULT_BUFSIZE);
 
     return 0;
 }
